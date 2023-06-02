@@ -1,0 +1,1719 @@
+<!DOCTYPE html>
+<html class="wf-notosans-n4-active wf-notoserif-n4-active wf-notoserif-i4-active wf-notoserif-n7-active wf-notoserif-i7-active wf-active" lang="en"><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="profile" href="http://gmpg.org/xfn/11">
+
+<title>A simple explanation of reverse-mode automatic differentiation – Justin Domke</title>
+<script src="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/webfont.js" type="text/javascript" async=""></script><script type="text/javascript">
+  WebFontConfig = {"google":{"families":["Noto+Sans:r:latin,latin-ext","Noto+Serif:r,i,b,bi:latin,latin-ext"]},"api_url":"https:\/\/fonts-api.wp.com\/css"};
+  (function() {
+    var wf = document.createElement('script');
+    wf.src = 'https://s0.wp.com/wp-content/plugins/custom-fonts/js/webfont.js';
+    wf.type = 'text/javascript';
+    wf.async = 'true';
+    var s = document.getElementsByTagName('script')[0];
+    s.parentNode.insertBefore(wf, s);
+	})();
+</script><style id="jetpack-custom-fonts-css">.wf-active code, .wf-active kbd, .wf-active pre, .wf-active samp{font-family:"Noto Serif",serif}.wf-active body{font-family:"Noto Serif",serif}.wf-active button, .wf-active input, .wf-active select{font-family:"Noto Serif",serif}.wf-active textarea{font-family:"Noto Serif",serif}.wf-active blockquote{font-family:"Noto Serif",serif}.wf-active code, .wf-active kbd, .wf-active pre, .wf-active tt, .wf-active var{font-family:"Noto Serif",serif}.wf-active .button, .wf-active .more-link, .wf-active button:not(.menu-toggle), .wf-active input[type="button"], .wf-active input[type="reset"], .wf-active input[type="submit"], .wf-active .posts-navigation .nav-links a, .wf-active #content #infinite-handle span button{font-family:"Noto Serif",serif}.wf-active input[type="email"], .wf-active input[type="password"], .wf-active input[type="search"], .wf-active input[type="text"], .wf-active input[type="url"], .wf-active textarea{font-family:"Noto Serif",serif}.wf-active .post-navigation{font-family:"Noto Serif",serif}.wf-active .main-navigation{font-family:"Noto Serif",serif}.wf-active .entry-content, .wf-active .entry-summary, .wf-active .page-content{font-family:"Noto Serif",serif}.wf-active .entry-content .subtitle{font-family:"Noto Serif",serif}.wf-active #comments{font-family:"Noto Serif",serif}.wf-active .comment-form label{font-family:"Noto Serif",serif}.wf-active .comment-form span.required{font-family:"Noto Serif",serif}.wf-active .widget_recent_entries span.post-date{font-family:"Noto Serif",serif}.wf-active .site-description{font-family:"Noto Serif",serif}.wf-active .site-posted-on time{font-family:"Noto Serif",serif}.wf-active .page-header:not(.page-header-light) .taxonomy-description{font-family:"Noto Serif",serif}.wf-active .light-text{font-family:"Noto Serif",serif}.wf-active .site-info{font-family:"Noto Serif",serif}.wf-active .sticky-label{font-family:"Noto Serif",serif}.wf-active .post-details, .wf-active .post-details a{font-family:"Noto Serif",serif}.wf-active .page-links{font-family:"Noto Serif",serif}.wf-active .post-edit-link{font-family:"Noto Serif",serif}.wf-active .post-author-card .author-description{font-family:"Noto Serif",serif}.wf-active #tinymce h1, .wf-active #tinymce h2, .wf-active #tinymce h3, .wf-active #tinymce h4, .wf-active #tinymce h5, .wf-active #tinymce h6, .wf-active .comment-content h1, .wf-active .comment-content h2, .wf-active .comment-content h3, .wf-active .comment-content h4, .wf-active .comment-content h5, .wf-active .comment-content h6, .wf-active .entry-content h1, .wf-active .entry-content h2, .wf-active .entry-content h3, .wf-active .entry-content h4, .wf-active .entry-content h5, .wf-active .entry-content h6, .wf-active .entry-summary h1, .wf-active .entry-summary h2, .wf-active .entry-summary h3, .wf-active .entry-summary h4, .wf-active .entry-summary h5, .wf-active .entry-summary h6, .wf-active .widget_text h1, .wf-active .widget_text h2, .wf-active .widget_text h3, .wf-active .widget_text h4, .wf-active .widget_text h5, .wf-active .widget_text h6{font-family:"Noto Sans",sans-serif;font-style:normal;font-weight:400}.wf-active h1{font-style:normal;font-weight:400}.wf-active h2{font-style:normal;font-weight:400}.wf-active h3{font-style:normal;font-weight:400}.wf-active h4{font-style:normal;font-weight:400}.wf-active h5{font-style:normal;font-weight:400}.wf-active h6{font-style:normal;font-weight:400}.wf-active blockquote h1, .wf-active blockquote h2, .wf-active blockquote h3, .wf-active blockquote h4{font-family:"Noto Sans",sans-serif;font-weight:400;font-style:normal}.wf-active div#jp-relatedposts h3.jp-relatedposts-headline em{font-family:"Noto Sans",sans-serif;font-style:normal;font-weight:400}.wf-active .comment-reply-title, .wf-active .comments-title{font-family:"Noto Sans",sans-serif;font-weight:400;font-style:normal}.wf-active .image-post-title{font-family:"Noto Sans",sans-serif;font-weight:400;font-style:normal}.wf-active .page-header:not(.page-header-light) h1{font-style:normal;font-weight:400}.wf-active .entry-title{font-family:"Noto Sans",sans-serif;font-style:normal;font-weight:400}.wf-active #post-cover-image .cover-meta .single-post-title{font-family:"Noto Sans",sans-serif;font-style:normal;font-weight:400}.wf-active #hero-header .site-title{font-family:"Noto Sans",sans-serif;font-style:normal;font-weight:400}.wf-active .site-header .site-title{font-style:normal;font-weight:400}.wf-active .site-header .site-description{font-style:normal;font-weight:400}</style>
+<meta name="robots" content="max-image-preview:large">
+<link rel="dns-prefetch" href="https://s0.wp.com/">
+<link rel="dns-prefetch" href="https://s.pubmine.com/">
+<link rel="dns-prefetch" href="https://x.bidswitch.net/">
+<link rel="dns-prefetch" href="https://static.criteo.net/">
+<link rel="dns-prefetch" href="https://ib.adnxs.com/">
+<link rel="dns-prefetch" href="https://aax.amazon-adsystem.com/">
+<link rel="dns-prefetch" href="https://bidder.criteo.com/">
+<link rel="dns-prefetch" href="https://cas.criteo.com/">
+<link rel="dns-prefetch" href="https://gum.criteo.com/">
+<link rel="dns-prefetch" href="https://ads.pubmatic.com/">
+<link rel="dns-prefetch" href="https://gads.pubmatic.com/">
+<link rel="dns-prefetch" href="https://tpc.googlesyndication.com/">
+<link rel="dns-prefetch" href="https://ad.doubleclick.net/">
+<link rel="dns-prefetch" href="https://googleads.g.doubleclick.net/">
+<link rel="dns-prefetch" href="https://www.googletagservices.com/">
+<link rel="dns-prefetch" href="https://cdn.switchadhub.com/">
+<link rel="dns-prefetch" href="https://delivery.g.switchadhub.com/">
+<link rel="dns-prefetch" href="https://delivery.swid.switchadhub.com/">
+<link rel="dns-prefetch" href="https://a.teads.tv/">
+<link rel="dns-prefetch" href="https://prebid.media.net/">
+<link rel="dns-prefetch" href="https://adserver-us.adtech.advertising.com/">
+<link rel="dns-prefetch" href="https://fastlane.rubiconproject.com/">
+<link rel="dns-prefetch" href="https://prebid-server.rubiconproject.com/">
+<link rel="dns-prefetch" href="https://hb-api.omnitagjs.com/">
+<link rel="dns-prefetch" href="https://mtrx.go.sonobi.com/">
+<link rel="dns-prefetch" href="https://apex.go.sonobi.com/">
+<link rel="dns-prefetch" href="https://u.openx.net/">
+<link href="https://fonts.gstatic.com/" crossorigin="" rel="preconnect">
+<link rel="alternate" type="application/rss+xml" title="Justin Domke » Feed" href="https://justindomke.wordpress.com/feed/">
+<link rel="alternate" type="application/rss+xml" title="Justin Domke » Comments Feed" href="https://justindomke.wordpress.com/comments/feed/">
+<link rel="alternate" type="application/rss+xml" title="Justin Domke » A simple explanation of reverse-mode automatic&nbsp;differentiation Comments Feed" href="https://justindomke.wordpress.com/2009/03/24/a-simple-explanation-of-reverse-mode-automatic-differentiation/feed/">
+	<script type="text/javascript">
+		/* <![CDATA[ */
+		function addLoadEvent(func) {
+			var oldonload = window.onload;
+			if (typeof window.onload != 'function') {
+				window.onload = func;
+			} else {
+				window.onload = function () {
+					oldonload();
+					func();
+				}
+			}
+		}
+		/* ]]> */
+	</script>
+	<script type="text/javascript">
+window._wpemojiSettings = {"baseUrl":"https:\/\/s0.wp.com\/wp-content\/mu-plugins\/wpcom-smileys\/twemoji\/2\/72x72\/","ext":".png","svgUrl":"https:\/\/s0.wp.com\/wp-content\/mu-plugins\/wpcom-smileys\/twemoji\/2\/svg\/","svgExt":".svg","source":{"concatemoji":"https:\/\/s0.wp.com\/wp-includes\/js\/wp-emoji-release.min.js?m=1677072837h&ver=6.2-RC2-55570"}};
+/*! This file is auto-generated */
+!function(e,a,t){var n,r,o,i=a.createElement("canvas"),p=i.getContext&&i.getContext("2d");function s(e,t){p.clearRect(0,0,i.width,i.height),p.fillText(e,0,0);e=i.toDataURL();return p.clearRect(0,0,i.width,i.height),p.fillText(t,0,0),e===i.toDataURL()}function c(e){var t=a.createElement("script");t.src=e,t.defer=t.type="text/javascript",a.getElementsByTagName("head")[0].appendChild(t)}for(o=Array("flag","emoji"),t.supports={everything:!0,everythingExceptFlag:!0},r=0;r<o.length;r++)t.supports[o[r]]=function(e){if(p&&p.fillText)switch(p.textBaseline="top",p.font="600 32px Arial",e){case"flag":return s("\ud83c\udff3\ufe0f\u200d\u26a7\ufe0f","\ud83c\udff3\ufe0f\u200b\u26a7\ufe0f")?!1:!s("\ud83c\uddfa\ud83c\uddf3","\ud83c\uddfa\u200b\ud83c\uddf3")&&!s("\ud83c\udff4\udb40\udc67\udb40\udc62\udb40\udc65\udb40\udc6e\udb40\udc67\udb40\udc7f","\ud83c\udff4\u200b\udb40\udc67\u200b\udb40\udc62\u200b\udb40\udc65\u200b\udb40\udc6e\u200b\udb40\udc67\u200b\udb40\udc7f");case"emoji":return!s("\ud83e\udef1\ud83c\udffb\u200d\ud83e\udef2\ud83c\udfff","\ud83e\udef1\ud83c\udffb\u200b\ud83e\udef2\ud83c\udfff")}return!1}(o[r]),t.supports.everything=t.supports.everything&&t.supports[o[r]],"flag"!==o[r]&&(t.supports.everythingExceptFlag=t.supports.everythingExceptFlag&&t.supports[o[r]]);t.supports.everythingExceptFlag=t.supports.everythingExceptFlag&&!t.supports.flag,t.DOMReady=!1,t.readyCallback=function(){t.DOMReady=!0},t.supports.everything||(n=function(){t.readyCallback()},a.addEventListener?(a.addEventListener("DOMContentLoaded",n,!1),e.addEventListener("load",n,!1)):(e.attachEvent("onload",n),a.attachEvent("onreadystatechange",function(){"complete"===a.readyState&&t.readyCallback()})),(e=t.source||{}).concatemoji?c(e.concatemoji):e.wpemoji&&e.twemoji&&(c(e.twemoji),c(e.wpemoji)))}(window,document,window._wpemojiSettings);
+</script>
+<style type="text/css">
+img.wp-smiley,
+img.emoji {
+	display: inline !important;
+	border: none !important;
+	box-shadow: none !important;
+	height: 1em !important;
+	width: 1em !important;
+	margin: 0 0.07em !important;
+	vertical-align: -0.1em !important;
+	background: none !important;
+	padding: 0 !important;
+}
+</style>
+	<link crossorigin="anonymous" rel="stylesheet" id="all-css-0-1" href="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/Untitled_002.css" type="text/css" media="all">
+<style id="wp-block-library-inline-css">
+.has-text-align-justify {
+	text-align:justify;
+}
+.wp-block-cover__image-background.has-parallax {
+	background-size: cover;
+}
+</style>
+<link crossorigin="anonymous" rel="stylesheet" id="all-css-2-1" href="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/Untitled_003.css" type="text/css" media="all">
+<style id="global-styles-inline-css">
+body{--wp--preset--color--black: #000000;--wp--preset--color--cyan-bluish-gray: #abb8c3;--wp--preset--color--white: #fff;--wp--preset--color--pale-pink: #f78da7;--wp--preset--color--vivid-red: #cf2e2e;--wp--preset--color--luminous-vivid-orange: #ff6900;--wp--preset--color--luminous-vivid-amber: #fcb900;--wp--preset--color--light-green-cyan: #7bdcb5;--wp--preset--color--vivid-green-cyan: #00d084;--wp--preset--color--pale-cyan-blue: #8ed1fc;--wp--preset--color--vivid-cyan-blue: #0693e3;--wp--preset--color--vivid-purple: #9b51e0;--wp--preset--color--medium-blue: #0087be;--wp--preset--color--bright-blue: #00aadc;--wp--preset--color--dark-gray: #4d4d4b;--wp--preset--color--light-gray: #b3b3b1;--wp--preset--gradient--vivid-cyan-blue-to-vivid-purple: linear-gradient(135deg,rgba(6,147,227,1) 0%,rgb(155,81,224) 100%);--wp--preset--gradient--light-green-cyan-to-vivid-green-cyan: linear-gradient(135deg,rgb(122,220,180) 0%,rgb(0,208,130) 100%);--wp--preset--gradient--luminous-vivid-amber-to-luminous-vivid-orange: linear-gradient(135deg,rgba(252,185,0,1) 0%,rgba(255,105,0,1) 100%);--wp--preset--gradient--luminous-vivid-orange-to-vivid-red: linear-gradient(135deg,rgba(255,105,0,1) 0%,rgb(207,46,46) 100%);--wp--preset--gradient--very-light-gray-to-cyan-bluish-gray: linear-gradient(135deg,rgb(238,238,238) 0%,rgb(169,184,195) 100%);--wp--preset--gradient--cool-to-warm-spectrum: linear-gradient(135deg,rgb(74,234,220) 0%,rgb(151,120,209) 20%,rgb(207,42,186) 40%,rgb(238,44,130) 60%,rgb(251,105,98) 80%,rgb(254,248,76) 100%);--wp--preset--gradient--blush-light-purple: linear-gradient(135deg,rgb(255,206,236) 0%,rgb(152,150,240) 100%);--wp--preset--gradient--blush-bordeaux: linear-gradient(135deg,rgb(254,205,165) 0%,rgb(254,45,45) 50%,rgb(107,0,62) 100%);--wp--preset--gradient--luminous-dusk: linear-gradient(135deg,rgb(255,203,112) 0%,rgb(199,81,192) 50%,rgb(65,88,208) 100%);--wp--preset--gradient--pale-ocean: linear-gradient(135deg,rgb(255,245,203) 0%,rgb(182,227,212) 50%,rgb(51,167,181) 100%);--wp--preset--gradient--electric-grass: linear-gradient(135deg,rgb(202,248,128) 0%,rgb(113,206,126) 100%);--wp--preset--gradient--midnight: linear-gradient(135deg,rgb(2,3,129) 0%,rgb(40,116,252) 100%);--wp--preset--duotone--dark-grayscale: url('#wp-duotone-dark-grayscale');--wp--preset--duotone--grayscale: url('#wp-duotone-grayscale');--wp--preset--duotone--purple-yellow: url('#wp-duotone-purple-yellow');--wp--preset--duotone--blue-red: url('#wp-duotone-blue-red');--wp--preset--duotone--midnight: url('#wp-duotone-midnight');--wp--preset--duotone--magenta-yellow: url('#wp-duotone-magenta-yellow');--wp--preset--duotone--purple-green: url('#wp-duotone-purple-green');--wp--preset--duotone--blue-orange: url('#wp-duotone-blue-orange');--wp--preset--font-size--small: 13px;--wp--preset--font-size--medium: 20px;--wp--preset--font-size--large: 36px;--wp--preset--font-size--x-large: 42px;--wp--preset--font-family--albert-sans: 'Albert Sans';--wp--preset--font-family--alegreya: Alegreya;--wp--preset--font-family--arvo: Arvo;--wp--preset--font-family--bodoni-moda: 'Bodoni Moda';--wp--preset--font-family--cabin: Cabin;--wp--preset--font-family--chivo: Chivo;--wp--preset--font-family--commissioner: Commissioner;--wp--preset--font-family--cormorant: Cormorant;--wp--preset--font-family--courier-prime: 'Courier Prime';--wp--preset--font-family--crimson-pro: 'Crimson Pro';--wp--preset--font-family--dm-mono: 'DM Mono';--wp--preset--font-family--dm-sans: 'DM Sans';--wp--preset--font-family--domine: Domine;--wp--preset--font-family--eb-garamond: 'EB Garamond';--wp--preset--font-family--epilogue: Epilogue;--wp--preset--font-family--figtree: Figtree;--wp--preset--font-family--fira-sans: 'Fira Sans';--wp--preset--font-family--fraunces: Fraunces;--wp--preset--font-family--ibm-plex-mono: 'IBM Plex Mono';--wp--preset--font-family--ibm-plex-sans: 'IBM Plex Sans';--wp--preset--font-family--inter: Inter;--wp--preset--font-family--josefin-sans: 'Josefin Sans';--wp--preset--font-family--jost: Jost;--wp--preset--font-family--libre-baskerville: 'Libre Baskerville';--wp--preset--font-family--libre-franklin: 'Libre Franklin';--wp--preset--font-family--literata: Literata;--wp--preset--font-family--lora: Lora;--wp--preset--font-family--merriweather: Merriweather;--wp--preset--font-family--montserrat: Montserrat;--wp--preset--font-family--newsreader: Newsreader;--wp--preset--font-family--nunito: Nunito;--wp--preset--font-family--open-sans: 'Open Sans';--wp--preset--font-family--overpass: Overpass;--wp--preset--font-family--petrona: Petrona;--wp--preset--font-family--piazzolla: Piazzolla;--wp--preset--font-family--playfair-display: 'Playfair Display';--wp--preset--font-family--plus-jakarta-sans: 'Plus Jakarta Sans';--wp--preset--font-family--poppins: Poppins;--wp--preset--font-family--raleway: Raleway;--wp--preset--font-family--roboto-slab: 'Roboto Slab';--wp--preset--font-family--roboto: Roboto;--wp--preset--font-family--rubik: Rubik;--wp--preset--font-family--sora: Sora;--wp--preset--font-family--source-sans-pro: 'Source Sans Pro';--wp--preset--font-family--source-serif-pro: 'Source Serif Pro';--wp--preset--font-family--space-mono: 'Space Mono';--wp--preset--font-family--texturina: Texturina;--wp--preset--font-family--work-sans: 'Work Sans';--wp--preset--spacing--20: 0.44rem;--wp--preset--spacing--30: 0.67rem;--wp--preset--spacing--40: 1rem;--wp--preset--spacing--50: 1.5rem;--wp--preset--spacing--60: 2.25rem;--wp--preset--spacing--70: 3.38rem;--wp--preset--spacing--80: 5.06rem;--wp--preset--shadow--natural: 6px 6px 9px rgba(0, 0, 0, 0.2);--wp--preset--shadow--deep: 12px 12px 50px rgba(0, 0, 0, 0.4);--wp--preset--shadow--sharp: 6px 6px 0px rgba(0, 0, 0, 0.2);--wp--preset--shadow--outlined: 6px 6px 0px -3px rgba(255, 255, 255, 1), 6px 6px rgba(0, 0, 0, 1);--wp--preset--shadow--crisp: 6px 6px 0px rgba(0, 0, 0, 1);}:where(.is-layout-flex){gap: 0.5em;}body .is-layout-flow > .alignleft{float: left;margin-inline-start: 0;margin-inline-end: 2em;}body .is-layout-flow > .alignright{float: right;margin-inline-start: 2em;margin-inline-end: 0;}body .is-layout-flow > .aligncenter{margin-left: auto !important;margin-right: auto !important;}body .is-layout-constrained > .alignleft{float: left;margin-inline-start: 0;margin-inline-end: 2em;}body .is-layout-constrained > .alignright{float: right;margin-inline-start: 2em;margin-inline-end: 0;}body .is-layout-constrained > .aligncenter{margin-left: auto !important;margin-right: auto !important;}body .is-layout-constrained > :where(:not(.alignleft):not(.alignright):not(.alignfull)){max-width: var(--wp--style--global--content-size);margin-left: auto !important;margin-right: auto !important;}body .is-layout-constrained > .alignwide{max-width: var(--wp--style--global--wide-size);}body .is-layout-flex{display: flex;}body .is-layout-flex{flex-wrap: wrap;align-items: center;}body .is-layout-flex > *{margin: 0;}:where(.wp-block-columns.is-layout-flex){gap: 2em;}.has-black-color{color: var(--wp--preset--color--black) !important;}.has-cyan-bluish-gray-color{color: var(--wp--preset--color--cyan-bluish-gray) !important;}.has-white-color{color: var(--wp--preset--color--white) !important;}.has-pale-pink-color{color: var(--wp--preset--color--pale-pink) !important;}.has-vivid-red-color{color: var(--wp--preset--color--vivid-red) !important;}.has-luminous-vivid-orange-color{color: var(--wp--preset--color--luminous-vivid-orange) !important;}.has-luminous-vivid-amber-color{color: var(--wp--preset--color--luminous-vivid-amber) !important;}.has-light-green-cyan-color{color: var(--wp--preset--color--light-green-cyan) !important;}.has-vivid-green-cyan-color{color: var(--wp--preset--color--vivid-green-cyan) !important;}.has-pale-cyan-blue-color{color: var(--wp--preset--color--pale-cyan-blue) !important;}.has-vivid-cyan-blue-color{color: var(--wp--preset--color--vivid-cyan-blue) !important;}.has-vivid-purple-color{color: var(--wp--preset--color--vivid-purple) !important;}.has-black-background-color{background-color: var(--wp--preset--color--black) !important;}.has-cyan-bluish-gray-background-color{background-color: var(--wp--preset--color--cyan-bluish-gray) !important;}.has-white-background-color{background-color: var(--wp--preset--color--white) !important;}.has-pale-pink-background-color{background-color: var(--wp--preset--color--pale-pink) !important;}.has-vivid-red-background-color{background-color: var(--wp--preset--color--vivid-red) !important;}.has-luminous-vivid-orange-background-color{background-color: var(--wp--preset--color--luminous-vivid-orange) !important;}.has-luminous-vivid-amber-background-color{background-color: var(--wp--preset--color--luminous-vivid-amber) !important;}.has-light-green-cyan-background-color{background-color: var(--wp--preset--color--light-green-cyan) !important;}.has-vivid-green-cyan-background-color{background-color: var(--wp--preset--color--vivid-green-cyan) !important;}.has-pale-cyan-blue-background-color{background-color: var(--wp--preset--color--pale-cyan-blue) !important;}.has-vivid-cyan-blue-background-color{background-color: var(--wp--preset--color--vivid-cyan-blue) !important;}.has-vivid-purple-background-color{background-color: var(--wp--preset--color--vivid-purple) !important;}.has-black-border-color{border-color: var(--wp--preset--color--black) !important;}.has-cyan-bluish-gray-border-color{border-color: var(--wp--preset--color--cyan-bluish-gray) !important;}.has-white-border-color{border-color: var(--wp--preset--color--white) !important;}.has-pale-pink-border-color{border-color: var(--wp--preset--color--pale-pink) !important;}.has-vivid-red-border-color{border-color: var(--wp--preset--color--vivid-red) !important;}.has-luminous-vivid-orange-border-color{border-color: var(--wp--preset--color--luminous-vivid-orange) !important;}.has-luminous-vivid-amber-border-color{border-color: var(--wp--preset--color--luminous-vivid-amber) !important;}.has-light-green-cyan-border-color{border-color: var(--wp--preset--color--light-green-cyan) !important;}.has-vivid-green-cyan-border-color{border-color: var(--wp--preset--color--vivid-green-cyan) !important;}.has-pale-cyan-blue-border-color{border-color: var(--wp--preset--color--pale-cyan-blue) !important;}.has-vivid-cyan-blue-border-color{border-color: var(--wp--preset--color--vivid-cyan-blue) !important;}.has-vivid-purple-border-color{border-color: var(--wp--preset--color--vivid-purple) !important;}.has-vivid-cyan-blue-to-vivid-purple-gradient-background{background: var(--wp--preset--gradient--vivid-cyan-blue-to-vivid-purple) !important;}.has-light-green-cyan-to-vivid-green-cyan-gradient-background{background: var(--wp--preset--gradient--light-green-cyan-to-vivid-green-cyan) !important;}.has-luminous-vivid-amber-to-luminous-vivid-orange-gradient-background{background: var(--wp--preset--gradient--luminous-vivid-amber-to-luminous-vivid-orange) !important;}.has-luminous-vivid-orange-to-vivid-red-gradient-background{background: var(--wp--preset--gradient--luminous-vivid-orange-to-vivid-red) !important;}.has-very-light-gray-to-cyan-bluish-gray-gradient-background{background: var(--wp--preset--gradient--very-light-gray-to-cyan-bluish-gray) !important;}.has-cool-to-warm-spectrum-gradient-background{background: var(--wp--preset--gradient--cool-to-warm-spectrum) !important;}.has-blush-light-purple-gradient-background{background: var(--wp--preset--gradient--blush-light-purple) !important;}.has-blush-bordeaux-gradient-background{background: var(--wp--preset--gradient--blush-bordeaux) !important;}.has-luminous-dusk-gradient-background{background: var(--wp--preset--gradient--luminous-dusk) !important;}.has-pale-ocean-gradient-background{background: var(--wp--preset--gradient--pale-ocean) !important;}.has-electric-grass-gradient-background{background: var(--wp--preset--gradient--electric-grass) !important;}.has-midnight-gradient-background{background: var(--wp--preset--gradient--midnight) !important;}.has-small-font-size{font-size: var(--wp--preset--font-size--small) !important;}.has-medium-font-size{font-size: var(--wp--preset--font-size--medium) !important;}.has-large-font-size{font-size: var(--wp--preset--font-size--large) !important;}.has-x-large-font-size{font-size: var(--wp--preset--font-size--x-large) !important;}
+:where(.wp-block-columns.is-layout-flex){gap: 2em;}
+.wp-block-pullquote{font-size: 1.5em;line-height: 1.6;}
+.wp-block-navigation a:where(:not(.wp-element-button)){color: inherit;}
+</style>
+<link crossorigin="anonymous" rel="stylesheet" id="all-css-4-1" href="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/Untitled.css" type="text/css" media="all">
+<style id="independent-publisher-2-style-inline-css">
+.cat-links, .post-tags, .tags-links, .byline, .comments-link { clip: rect(1px, 1px, 1px, 1px); height: 1px; position: absolute; overflow: hidden; width: 1px; }
+</style>
+<link crossorigin="anonymous" rel="stylesheet" id="print-css-5-1" href="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/global-print.css" type="text/css" media="print">
+<style id="jetpack-global-styles-frontend-style-inline-css">
+:root { --font-headings: unset; --font-base: unset; --font-headings-default: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen-Sans,Ubuntu,Cantarell,"Helvetica Neue",sans-serif; --font-base-default: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen-Sans,Ubuntu,Cantarell,"Helvetica Neue",sans-serif;}
+</style>
+<link crossorigin="anonymous" rel="stylesheet" id="all-css-8-1" href="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/global.css" type="text/css" media="all">
+<link rel="stylesheet" href="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/css.css" media="all"><script id="wpcom-actionbar-placeholder-js-extra">
+var actionbardata = {"siteID":"4009146","siteURL":"http:\/\/justindomke.wordpress.com","xhrURL":"https:\/\/justindomke.wordpress.com\/wp-admin\/admin-ajax.php","nonce":"9d38dae4b6","isLoggedIn":"","statusMessage":"","subsEmailDefault":"instantly","proxyScriptUrl":"https:\/\/s0.wp.com\/wp-content\/js\/wpcom-proxy-request.js?ver=20211021","shortlink":"https:\/\/wp.me\/pgOXE-8Q","i18n":{"followedText":"New posts from this site will now appear in your <a href=\"https:\/\/wordpress.com\/read\">Reader<\/a>","foldBar":"Collapse this bar","unfoldBar":"Expand this bar"}};
+</script>
+<script crossorigin="anonymous" type="text/javascript" src="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/Untitled_002"></script>
+<script type="text/javascript">
+	window.addEventListener( 'DOMContentLoaded', function() {
+		rltInitialize( {"token":null,"iframeOrigins":["https:\/\/widgets.wp.com"]} );
+	} );
+</script>
+<link crossorigin="anonymous" rel="stylesheet" id="all-css-0-2" href="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/style.css" type="text/css" media="all">
+<link rel="EditURI" type="application/rsd+xml" title="RSD" href="https://justindomke.wordpress.com/xmlrpc.php?rsd">
+<link rel="wlwmanifest" type="application/wlwmanifest+xml" href="https://s0.wp.com/wp-includes/wlwmanifest.xml">
+<meta name="generator" content="WordPress.com">
+<link rel="canonical" href="https://justindomke.wordpress.com/2009/03/24/a-simple-explanation-of-reverse-mode-automatic-differentiation/">
+<link rel="shortlink" href="https://wp.me/pgOXE-8Q">
+<link rel="alternate" type="application/json+oembed" href="https://public-api.wordpress.com/oembed/?format=json&amp;url=https%3A%2F%2Fjustindomke.wordpress.com%2F2009%2F03%2F24%2Fa-simple-explanation-of-reverse-mode-automatic-differentiation%2F&amp;for=wpcom-auto-discovery"><link rel="alternate" type="application/xml+oembed" href="https://public-api.wordpress.com/oembed/?format=xml&amp;url=https%3A%2F%2Fjustindomke.wordpress.com%2F2009%2F03%2F24%2Fa-simple-explanation-of-reverse-mode-automatic-differentiation%2F&amp;for=wpcom-auto-discovery">
+<!-- Jetpack Open Graph Tags -->
+<meta property="og:type" content="article">
+<meta property="og:title" content="A simple explanation of reverse-mode automatic differentiation">
+<meta property="og:url" content="https://justindomke.wordpress.com/2009/03/24/a-simple-explanation-of-reverse-mode-automatic-differentiation/">
+<meta property="og:description" content="My previous rant about automatic differentiation generated several requests for an explanation of how it works. This can be confusing because there are different types of automatic differentiation …">
+<meta property="article:published_time" content="2009-03-24T16:18:12+00:00">
+<meta property="article:modified_time" content="2009-03-24T21:35:22+00:00">
+<meta property="og:site_name" content="Justin Domke">
+<meta property="og:image" content="https://s0.wp.com/i/blank.jpg">
+<meta property="og:image:alt" content="">
+<meta property="og:locale" content="en_US">
+<meta property="fb:app_id" content="249643311490">
+<meta property="article:publisher" content="https://www.facebook.com/WordPresscom">
+<meta name="twitter:text:title" content="A simple explanation of reverse-mode automatic&nbsp;differentiation">
+<meta name="twitter:card" content="summary">
+
+<!-- End Jetpack Open Graph Tags -->
+<link rel="shortcut icon" type="image/x-icon" href="https://s0.wp.com/i/favicon.ico" sizes="16x16 24x24 32x32 48x48">
+<link rel="icon" type="image/x-icon" href="https://s0.wp.com/i/favicon.ico" sizes="16x16 24x24 32x32 48x48">
+<link rel="apple-touch-icon" href="https://s0.wp.com/i/webclip.png">
+<link rel="openid.server" href="https://justindomke.wordpress.com/?openidserver=1">
+<link rel="openid.delegate" href="https://justindomke.wordpress.com/">
+<link rel="search" type="application/opensearchdescription+xml" href="https://justindomke.wordpress.com/osd.xml" title="Justin Domke">
+<link rel="search" type="application/opensearchdescription+xml" href="https://s1.wp.com/opensearch.xml" title="WordPress.com">
+<link rel="pingback" href="https://justindomke.wordpress.com/xmlrpc.php"><meta name="application-name" content="Justin Domke"><meta name="msapplication-window" content="width=device-width;height=device-height"><meta name="msapplication-task" content="name=Subscribe;action-uri=https://justindomke.wordpress.com/feed/;icon-uri=https://s0.wp.com/i/favicon.ico"><meta name="msapplication-task" content="name=Sign up for a free blog;action-uri=http://wordpress.com/signup/;icon-uri=https://s0.wp.com/i/favicon.ico"><meta name="msapplication-task" content="name=WordPress.com Support;action-uri=http://support.wordpress.com/;icon-uri=https://s0.wp.com/i/favicon.ico"><meta name="msapplication-task" content="name=WordPress.com Forums;action-uri=http://forums.wordpress.com/;icon-uri=https://s0.wp.com/i/favicon.ico"><meta name="description" content="My previous rant about automatic differentiation generated several requests for an explanation of how it works. This can be confusing because there are different types of automatic differentiation (forward-mode, reverse-mode, hybrids.) This is my attempt to explain the basic idea of reverse-mode autodiff as simply as possible. Reverse-mode automatic differentiation is most attractive when you…">
+		<script type="application/javascript" src="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/smart.js" async=""></script>
+		<script type="application/javascript">
+			var sas = sas || {};
+			var sas_fallback = sas_fallback || [];
+			sas.cmd = sas.cmd || [];
+			sas.cmd.push(function() {
+				sas.setup({networkid: 3905, domain: 'https://www15.smartadserver.com', async: true});
+			});
+			sas.cmd.push(function() {
+				sas.call('onecall', {
+					siteId: 474853,
+					pageId: 1572546,
+					formats: [
+						{ id: 110354, tagId: "sas_110354" }
+					],
+					target: 'iab_category=IAB6;iab_category=IAB5;iab_category=IAB19;wp_blog_id=4009146',
+				});
+			});
+			sas.cmd.push(function() {
+				sas.events.on('noad', function(data) {
+					var el = document.getElementById(data.tagId);
+					var wrapper = el.closest('.wordads-ad-wrapper');
+					
+					if ( sas_fallback.length === 0 ) {
+						wrapper.remove();
+						return;
+					}
+					
+					// Process first tag.
+					var tag = sas_fallback[0].tag;
+					
+					// Unescape the tag markup.
+					var e = document.createElement('div');
+					e.innerHTML = tag;
+					tag = e.childNodes[0].nodeValue;
+					
+					// Insert the tag.
+					wrapper.innerHTML = tag;
+					
+					// Process any scripts in the tag.
+					var scripts = wrapper.querySelectorAll('script');
+					scripts.forEach( function (script) {
+						script.parentNode.removeChild(script);
+						
+						var scriptTag = document.createElement('script');
+						
+						if (script.src) {
+							scriptTag.src = script.src;
+						} else if (script.textContent) {
+							scriptTag.textContent = script.textContent;
+						} else if (script.innerText) {
+							scriptTag.innerText = script.innerText;
+						}
+						
+						document.body.appendChild(scriptTag);
+					});
+				});
+			});
+			sas.cmd.push(function() {
+				sas.events.on('load', function(data) {
+					var el = document.getElementById(data.tagId);
+					el.closest('.wordads-ad-wrapper').style.display = 'inherit';
+				});
+			});
+		</script>		<script>
+			window.sas_fallback = window.sas_fallback || [];
+			window.sas_fallback.push( { tag: "&lt;div class=&quot;OUTBRAIN wa-ob-widget&quot;data-ob-contentUrl=&quot;https://justindomke.wordpress.com/2009/03/24/a-simple-explanation-of-reverse-mode-automatic-differentiation/&quot;data-widget-id=&quot;AR_1&quot;data-ob-installation-key=&quot;WORDP263NC92GIANECJP6HEPM&quot;data-ob-psub=&quot;tech&quot;&gt;&lt;/div&gt;&lt;script&gt;window._stq = window._stq || [];window._stq.push( [ \'extra\', { x_wordads_outbrain: \'widget_render_ar_1\', }, ] );&lt;/script&gt;&lt;script src=&quot;https://widgets.outbrain.com/outbrain.js&quot;&gt;&lt;/script&gt;", } );
+		</script>		<script type="text/javascript">
+		function __ATA_CC() {var v = document.cookie.match('(^|;) ?personalized-ads-consent=([^;]*)(;|$)');return v ? 1 : 0;}
+		var __ATA_PP = { 'pt': 1, 'ht': 0, 'tn': 'independent-publisher-2', 'uloggedin': 0, 'amp': false, 'consent': __ATA_CC(), 'gdpr_applies': true, 'ad': { 'label': { 'text': 'Advertisements' }, 'reportAd': { 'text': 'Report this ad' }, 'privacySettings': { 'text': 'Privacy', 'onClick': function() { window.__tcfapi && window.__tcfapi( 'showUi' ) } } }, 'siteid': 8982, 'blogid': 4009146, 'js_hint': 'tcf2_test' };
+		var __ATA = __ATA || {};
+		__ATA.cmd = __ATA.cmd || [];
+		__ATA.criteo = __ATA.criteo || {};
+		__ATA.criteo.cmd = __ATA.criteo.cmd || [];
+		</script>
+		<script type="text/javascript">
+		(function(){var g=Date.now||function(){return+new Date};function h(a,b){a:{for(var c=a.length,d="string"==typeof a?a.split(""):a,e=0;e<c;e++)if(e in d&&b.call(void 0,d[e],e,a)){b=e;break a}b=-1}return 0>b?null:"string"==typeof a?a.charAt(b):a[b]};function k(a,b,c){c=null!=c?"="+encodeURIComponent(String(c)):"";if(b+=c){c=a.indexOf("#");0>c&&(c=a.length);var d=a.indexOf("?");if(0>d||d>c){d=c;var e=""}else e=a.substring(d+1,c);a=[a.substr(0,d),e,a.substr(c)];c=a[1];a[1]=b?c?c+"&"+b:b:c;a=a[0]+(a[1]?"?"+a[1]:"")+a[2]}return a};var l=0;function m(a,b){var c=document.createElement("script");c.src=a;c.onload=function(){b&&b(void 0)};c.onerror=function(){b&&b("error")};a=document.getElementsByTagName("head");var d;a&&0!==a.length?d=a[0]:d=document.documentElement;d.appendChild(c)}function n(a){var b=void 0===b?document.cookie:b;return(b=h(b.split("; "),function(c){return-1!=c.indexOf(a+"=")}))?b.split("=")[1]:""}function p(a){return"string"==typeof a&&0<a.length}
+		function r(a,b,c){b=void 0===b?"":b;c=void 0===c?".":c;var d=[];Object.keys(a).forEach(function(e){var f=a[e],q=typeof f;"object"==q&&null!=f||"function"==q?d.push(r(f,b+e+c)):null!==f&&void 0!==f&&(e=encodeURIComponent(b+e),d.push(e+"="+encodeURIComponent(f)))});return d.filter(p).join("&")}function t(a,b){a||((window.__ATA||{}).config=b.c,m(b.url))}var u=Math.floor(1E13*Math.random()),v=window.__ATA||{};window.__ATA=v;window.__ATA.cmd=v.cmd||[];v.rid=u;v.createdAt=g();var w=window.__ATA||{},x="s.pubmine.com";
+		w&&w.serverDomain&&(x=w.serverDomain);var y="//"+x+"/conf",z=window.top===window,A=window.__ATA_PP&&window.__ATA_PP.gdpr_applies,B="boolean"===typeof A?Number(A):null,C=window.__ATA_PP||null,D=z?document.referrer?document.referrer:null:null,E=z?window.location.href:document.referrer?document.referrer:null,F,G=n("__ATA_tuuid");F=G?G:null;var H=window.innerWidth+"x"+window.innerHeight,I=n("usprivacy"),J=r({gdpr:B,pp:C,rid:u,src:D,ref:E,tuuid:F,vp:H,us_privacy:I?I:null},"",".");
+		(function(a){var b=void 0===b?"cb":b;l++;var c="callback__"+g().toString(36)+"_"+l.toString(36);a=k(a,b,c);window[c]=function(d){t(void 0,d)};m(a,function(d){d&&t(d)})})(y+"?"+J);}).call(this);
+		</script><script src="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/conf.es"></script>	<script>
+		var sas_fallback = sas_fallback || [];
+		sas_fallback.push(
+			{ tag: "&lt;div id=&quot;atatags-26942-642ee8d6e051e&quot;&gt;&lt;/div&gt;&lt;script&gt;__ATA.cmd.push(function() {__ATA.initDynamicSlot({id: \'atatags-26942-642ee8d6e051e\',location: 120,formFactor: \'001\',label: {text: \'Advertisements\',},creative: {reportAd: {text: \'Report this ad\',},privacySettings: {text: \'Privacy\',onClick: function() { window.__tcfapi &amp;&amp; window.__tcfapi( \'showUi\' ); },}}});});&lt;/script&gt;", }
+		);
+	</script>		<script type="text/javascript">
+
+			window.doNotSellCallback = function() {
+
+				var linkElements = [
+					'a[href="https://wordpress.com/?ref=footer_blog"]',
+					'a[href="https://wordpress.com/?ref=footer_website"]',
+					'a[href="https://wordpress.com/?ref=vertical_footer"]',
+					'a[href^="https://wordpress.com/?ref=footer_segment_"]',
+				].join(',');
+
+				var dnsLink = document.createElement( 'a' );
+				dnsLink.href = 'https://wordpress.com/advertising-program-optout/';
+				dnsLink.classList.add( 'do-not-sell-link' );
+				dnsLink.rel = 'nofollow';
+				dnsLink.style.marginLeft = '0.5em';
+				dnsLink.textContent = 'Do Not Sell or Share My Personal Information';
+
+				var creditLinks = document.querySelectorAll( linkElements );
+
+				if ( 0 === creditLinks.length ) {
+					return false;
+				}
+
+				Array.prototype.forEach.call( creditLinks, function( el ) {
+					el.insertAdjacentElement( 'afterend', dnsLink );
+				});
+
+				return true;
+			};
+
+		</script>
+		<script id="cmp-configuration" type="application/configuration">{"gvlVersion":"190","consentLanguage":"EN","locale":"en","vendorsAll":"BKlrv4__7a_t_z_f_T9ujzGr_v9ffdyGYcL5tn3Au5f635eC_-wnZou_VtXBUyPEl2pYJChto5s6gas2LVEiteY9jUmzlKZpRPwMkg9jL2zrAwvN83NsfyBTPP_P7u7_Oyf_v_t_2_ue-_uu9-7vv_3-ux8br3P_o_9_76P7f35T_v_f3_l_n_v9cm372___________38AA","vendorsLegInterest":"BKkAkw1biALsyxwZtAwigRAjCsJCKBQAQUAwtEBAA4OCnZWAT6wiQAoBQBGBECHAFGBAIAABIAkIgAkCLBAAACIBAACABAIhAAwMAgsALAQCAAEA0DFEKAAQJCDIiIilMCAqBIICWyoQSgukNMIAqywAoBEbBQAIgkBFYAAgLBwDBEgJWLBAkxBtEAAwAoBRKhWopPTQEIAA","ajaxNonce":"bc471f4a52","modulePath":"https:\/\/s0.wp.com\/wp-content\/blog-plugins\/wordads-classes\/js\/","gvlPath":"https:\/\/public-api.wordpress.com\/wpcom\/v2\/sites\/4009146\/cmp\/vendors\/en\/","_":{"title":"Privacy & Cookies","intro":"We, WordPress.com, and our advertising partners store and\/or access information on your device and also process personal data, like unique identifiers, browsing activity, and other standard information sent by your device including your IP address. This information is collected over time and used for personalised ads, ad measurement, audience insights, and product development specific to our ads program. If this sounds good to you, select \"I Agree!\" below.  Otherwise, you can get more information, customize your consent preferences, or decline consent by selecting \"Learn More\". Note that your preferences apply to all websites in the <a href=\"https:\/\/automattic.com\/cookies\/#user-ads-consent\" target=\"_blank\">WordPress.com network<\/a>, and if you change your mind in the future you can update your preferences anytime by visiting the Privacy link displayed under each ad. One last thing, our partners may process some of your data based on legitimate interests instead of consent but you can object to that by choosing \"Learn More\" and then disabling the Legitimate Interests toggle under any listed Purpose or Partner.","config":"Learn More","accept":"I Agree!","viewPartners":"View Partners","error":"We're sorry but an unexpected error occurred. Please try again later."}}</script><script type="text/javascript">
+	window.google_analytics_uacct = "UA-52447-2";
+</script>
+
+<script type="text/javascript">
+	var _gaq = _gaq || [];
+	_gaq.push(['_setAccount', 'UA-52447-2']);
+	_gaq.push(['_gat._anonymizeIp']);
+	_gaq.push(['_setDomainName', 'wordpress.com']);
+	_gaq.push(['_initData']);
+	_gaq.push(['_trackPageview']);
+
+	(function() {
+		var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+		ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+		(document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(ga);
+	})();
+</script><script type="text/javascript" async="" src="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/ga.js"></script>
+<link rel="stylesheet" type="text/css" id="gravatar-card-css" href="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/hovercard.min.css"><link rel="stylesheet" type="text/css" id="gravatar-card-services-css" href="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/services.min.css"><script src="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/ata.js"></script><script src="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/tag.js"></script><link href="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/actionbar.css" type="text/css" rel="stylesheet"><script type="text/javascript" src="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/platforms.es" charset="UTF-8" async=""></script><script charset="utf-8" src="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/3.js"></script></head>
+
+<body class="post-template-default single single-post postid-548 single-format-standard wp-embed-responsive customizer-styles-applied has-sidebar categories-hidden tags-hidden author-hidden comment-hidden highlander-enabled highlander-light tablet-desktop" data-new-gr-c-s-loaded="8.905.0">
+
+<div id="page" class="hfeed site">
+	<a class="skip-link screen-reader-text" href="#content">Skip to content</a>
+
+	<div id="hero-header" class="site-hero-section">
+		<header id="masthead" class="site-header" role="banner">
+			<div class="inner">
+				<div class="site-branding">
+					
+												<p class="site-title"><a href="https://justindomke.wordpress.com/" rel="home">Justin Domke</a></p>
+										</div><!-- .site-branding -->
+
+				
+				
+			</div><!-- .inner -->
+		</header><!-- #masthead -->
+	</div>
+
+		
+	
+	
+	<div id="content-wrapper" class="content-wrapper">
+		<div id="content" class="site-content">
+
+	<div id="primary" class="content-area">
+		<main id="main" class="site-main" role="main">
+
+		
+			
+<article id="post-548" class="post-548 post type-post status-publish format-standard hentry category-uncategorized tag-calculus tag-machine-learning tag-math tag-scheme">
+			<header class="entry-header">
+			<h1 class="entry-title">A simple explanation of reverse-mode automatic&nbsp;differentiation</h1>		</header><!-- .entry-header -->		<div class="entry-meta">
+			<span class="byline">
+				<a href="https://justindomke.wordpress.com/author/justindomke/" title="Posts by justindomke" rel="author">justindomke</a>			</span>
+							<span class="cat-links">
+					<a href="https://justindomke.wordpress.com/category/uncategorized/" rel="category tag">Uncategorized</a>				</span><!-- .cat-links -->
+			
+			
+			<span class="published-on">
+				<time class="entry-date published" datetime="2009-03-24T16:18:12+00:00">March 24, 2009</time><time class="updated" datetime="2009-03-24T21:35:22+00:00">March 24, 2009</time>			</span>
+
+					</div><!-- .entry-meta -->
+	
+	<div class="entry-content">
+		<p data-adtags-visited="true">My <a href="https://justindomke.wordpress.com/2009/02/17/automatic-differentiation-the-most-criminally-underused-tool-in-the-potential-machine-learning-toolbox/">previous rant</a>
+ about automatic differentiation generated several requests for an 
+explanation of how it works.  This can be confusing because there are 
+different types of automatic differentiation (forward-mode, 
+reverse-mode, hybrids.)  This is my attempt to explain the basic idea of
+ <strong>reverse-mode autodiff</strong> as simply as possible.</p>
+<p data-adtags-visited="true">Reverse-mode automatic differentiation is most attractive when you have a function that takes <img src="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/latex_002.png" srcset="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/latex_002.png 1x, A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/latex_021.png 4x" alt="n" class="latex"> inputs <img src="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/latex_018.png" srcset="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/latex_018.png 1x, A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/latex_028.png 4x" alt="x_1,x_2,...,x_n" class="latex">, and produces a single output <img src="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/latex_017.png" srcset="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/latex_017.png 1x, A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/latex_024.png 4x" alt="x_N" class="latex">.  We want the derivatives of that function, <img src="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/latex_014.png" srcset="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/latex_014.png 1x, A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/latex_033.png 4x" alt="\displaystyle{\frac{d x_N}{d x_i}}" class="latex">, for all <img src="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/latex.png" srcset="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/latex.png 1x, A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/latex_032.png 4x" alt="i" class="latex">.</p>
+<p data-adtags-visited="true"><strong>Point #1</strong>:  Any differentiable algorithm can be translated into a sequence of assignments of basic operations.</p>
+<p data-adtags-visited="true"><strong>Forward-Prop</strong></p>
+<p data-adtags-visited="true">for <img src="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/latex_009.png" srcset="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/latex_009.png 1x, A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/latex_007.png 4x" alt="i=n+1,n+2,...,N" class="latex"></p>
+<p style="padding-left:30px;" data-adtags-visited="true"><img src="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/latex_005.png" srcset="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/latex_005.png 1x, A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/latex_036.png 4x" alt="x_i \leftarrow f_i({\bf x}_{\pi(i)})" class="latex"></p>
+<p data-adtags-visited="true">Here, each function <img src="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/latex_019.png" srcset="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/latex_019.png 1x, A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/latex_029.png 4x" alt="f_i" class="latex"> is some very basic operation (e.g. addition, multiplication, a logarithm) and <img src="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/latex_008.png" srcset="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/latex_008.png 1x, A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/latex_027.png 4x" alt="\pi(i)" class="latex"> denotes the set of “parents” of <img src="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/latex_011.png" srcset="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/latex_011.png 1x, A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/latex_034.png 4x" alt="x_i" class="latex">.  So, for example, if <img src="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/latex_015.png" srcset="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/latex_015.png 1x, A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/latex_035.png 4x" alt="\pi(7)=(2,5)" class="latex"> and <img src="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/latex_010.png" srcset="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/latex_010.png 1x, A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/latex_022.png 4x" alt="f_7 = \text{add}" class="latex">, then <img src="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/latex_016.png" srcset="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/latex_016.png 1x, A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/latex_026.png 4x" alt="x_7 = x_2 + x_5" class="latex">.</p>
+<p data-adtags-visited="true">It would be extremely tedious, of course, 
+to actually write an algorithm in this “expression graph” form.  So, 
+autodiff tools create this representation automatically from high-level 
+source code.</p>
+<p data-adtags-visited="true"><strong>Point #2</strong>: Given an algorithm in the previous format, it is easy to compute its derivatives.</p>
+<p data-adtags-visited="true">The essential point here is just the application of the chain rule.</p>
+<p data-adtags-visited="true"><img src="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/latex_020.png" srcset="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/latex_020.png 1x, A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/latex_025.png 4x" alt="\displaystyle{ \frac{d x_N}{d x_i} = \sum_{j:i\in \pi(j)} \frac{d x_N}{d x_j}\frac{\partial x_j}{\partial x_i}}" class="latex"></p>
+<p data-adtags-visited="true">Applying this, we can compute all the derivatives in reverse order.</p>
+<p data-adtags-visited="true"><strong>Back-Prop</strong></p>
+<p data-adtags-visited="true"><img src="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/latex_012.png" srcset="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/latex_012.png 1x, A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/latex_031.png 4x" alt="\displaystyle{ \frac{d x_N}{d x_N} \leftarrow 1}" class="latex"></p>
+<p data-adtags-visited="true">for <img src="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/latex_013.png" srcset="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/latex_013.png 1x, A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/latex_003.png 4x" alt="i=N-1,N-2,...,1" class="latex"></p>
+<p style="padding-left:30px;" data-adtags-visited="true"><img src="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/latex_004.png" srcset="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/latex_004.png 1x, A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/latex_023.png 4x" alt="\displaystyle{ \frac{d x_N}{d x_i} \leftarrow \sum_{j:i\in \pi(j)} \frac{d x_N}{d x_j}\frac{\partial f_j}{\partial x_i}}" class="latex"></p>
+<p data-adtags-visited="true">That’s it!&nbsp; Just create an expression graph representation of the algorithm and differentiate each basic operation <img src="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/latex_019.png" srcset="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/latex_019.png 1x, A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/latex_029.png 4x" alt="f_i" class="latex"> in reverse order using calc 101 rules.</p>
+<p class="inline-ad-slot" id="inline-ad-0" style="float:left;height:0px;margin:0 auto;overflow:hidden;width:740px;" data-adtags-width="740" data-adtags-visited="true"></p><p data-adtags-visited="true"><strong>Other stuff</strong>:</p>
+<ul>
+<li>No, this is not the same thing as symbolic differentiation.&nbsp; 
+This should be obvious:&nbsp; Most algorithms don’t even have simple 
+symbolic representations.&nbsp; And, even if yours does,&nbsp; it is 
+possible that it “explodes” upon symbolic differentiation.&nbsp; As a 
+contrived example, try computing the derivative of <img src="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/latex_006.png" srcset="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/latex_006.png 1x, A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/latex_030.png 4x" alt="\exp(\exp(\exp(\exp(\exp(\exp(x))))))" class="latex">.</li>
+</ul>
+<ul>
+<li>The complexity of the back-prop step is the same as the forward propagation step.</li>
+<li>In machine learning, functions from N inputs to one output come up 
+all the time:&nbsp; The N inputs are parameters defining a model, and 
+the 1 output is a loss, measuring how well the model fits training 
+data.&nbsp; The gradient can be fed into an optimization routine to fit 
+the model to data.</li>
+<li>There are two common ways of implementing this:</li>
+</ul>
+<ol>
+<li><span style="text-decoration:underline;"> Operator Overloading</span>.&nbsp;
+ One can create a new variable type that has all the common operations 
+of numeric types, which automatically creates an expression graph when 
+the program is run.&nbsp;&nbsp;  One can then call the back-prop routine
+ on this expression graph.&nbsp; Hence,&nbsp; one does not need to 
+modify the program, just replace each numeric type with this new 
+type.&nbsp; This is fairly easy to implement, and very easy to 
+use.&nbsp; <a href="http://www.cs.sandia.gov/~dmgay/">David Gay</a>‘s RAD toolbox for C++ is a good example, which I use all the time.<br>
+The major downside of operator overloading is efficiency:&nbsp; current 
+compilers will not optimize the backprop code.&nbsp; Essentially, 
+this&nbsp; step is interpreted.&nbsp; Thus, one finds in practice a 
+non-negligible overhead of, say, 2-15 times the complexity of the 
+original algorithm using a native numeric type.&nbsp; (The overhead 
+depends on how much the original code benefits from compiler 
+optimizations.)</li>
+<li><span style="text-decoration:underline;">Source code transformation</span>.
+ Alternatively, one could write a program that examines the source code 
+of the original program, and transforms this into source code computing 
+the derivatives.&nbsp; This is much harder to implement, unless one is 
+using a language like Lisp with very uniform syntax.&nbsp; However, 
+because the backprop source code produced is then optimized like normal 
+code, it offers the potential of zero overhead compared with manually 
+computed derivatives.</li>
+</ol>
+<ul>
+<li>If it isn’t convenient to use automatic differentiation, one can 
+also use “manual automatic differentation”.&nbsp; That is, to compute 
+the derivatives, just attack each intermediate value your algorithm 
+computes, in reverse order.</li>
+<li>Some of the most interesting work on autodiff comes from <a href="http://www.bcl.hamilton.ie/~qobi/">Pearlmutter and Siskind</a>,
+ who have produced a system called Stalingrad for a subset of scheme 
+that allows for crazy things like taking derivatives of code that itself
+ is taking derivates.&nbsp; (So you can, for example, produce 
+Hessians.)&nbsp; I think they wouldn’t mind hearing from potential 
+users.</li>
+</ul>
+<style>.wordads-ad-wrapper {display:none;font: normal 11px Arial, sans-serif;letter-spacing: 1px;text-decoration: none;width: 100%;margin: 25px auto;padding: 0;}.wordads-ad-title {margin-bottom: 5px;}.wordads-ad-controls {margin-top: 5px;text-align: right;}.wordads-ad-controls span {cursor: pointer;}.wordads-ad {width: fit-content;margin: 0 auto;}</style><div class="wordads-ad-wrapper" style="display: inherit;"><div id="ob_holder" style="display: none;"></div><div class="OUTBRAIN wa-ob-widget" data-ob-contenturl="https://justindomke.wordpress.com/2009/03/24/a-simple-explanation-of-reverse-mode-automatic-differentiation/" data-widget-id="AR_1" data-ob-installation-key="WORDP263NC92GIANECJP6HEPM" data-ob-psub="tech" data-ob-mark="true" data-browser="firefox" data-os="linux x86_64" data-dynload="" data-idx="0" id="outbrain_widget_0" data-ob-trackers="true"><div class="ob-widget ob-grid-layout AR_1" data-dynamic-truncate="true">
+            <style type="text/css">.ob-grid-layout,.ob-grid-layout *{-webkit-box-sizing:content-box;box-sizing:content-box}.ob-grid-layout .ob-widget-items-container{display:-ms-grid;display:grid;clear:both}.ob-grid-layout .ob-dynamic-rec-container{position:relative}.ob-grid-layout .ob-dynamic-rec-link{display:-webkit-box;display:-ms-flexbox;display:flex;-webkit-box-orient:vertical;-webkit-box-direction:normal;-ms-flex-direction:column;flex-direction:column;text-decoration:none}.ob-grid-layout .ob-unit{display:block;-webkit-box-flex:1;-ms-flex:auto;flex:auto}.ob-grid-layout .ob-unit.ob-rec-image-container{position:relative;width:100%;height:auto}.ob-grid-layout .ob-unit .ob-rec-logo-container.logo-over-image{position:absolute}.ob-grid-layout .ob-rec-comments-count{font-size:11px;font-family:Lato,sans-serif;text-decoration:none;border-radius:0 2px 2px 0;position:absolute;bottom:11px;color:#fff;font-weight:700;display:-webkit-box;display:-ms-flexbox;display:flex;-webkit-box-align:center;-ms-flex-align:center;align-items:center;-webkit-box-pack:center;-ms-flex-pack:center;justify-content:center;padding:5px 8px 6px;height:13px}.ob-grid-layout .ob-rec-comments-count__icon{margin:2px 5px 0 0}.ob-grid-layout .ob-rec-image,.ob-grid-layout .ob-rec-video{position:absolute;top:0;left:0;bottom:0;right:0;width:100%;max-height:100%}.ob-grid-layout .ob-rec-rtb-image{background-color:#fff;background-position:top;background-repeat:no-repeat;width:100%;position:absolute;top:0;bottom:0;left:0;right:0}.ob-grid-layout .ob-rec-label{position:absolute;bottom:0;left:0;padding:0 3px;color:#fff;font-size:10px;line-height:15px}.ob-grid-layout .ob-rec-source-wrapper,.ob-grid-layout .ob-rec-text-wrapper{display:-webkit-box;display:-ms-flexbox;display:flex;-webkit-box-align:baseline;-ms-flex-align:baseline;align-items:baseline}.ob-grid-layout .ob-rec-source-wrapper .ob-rec-label,.ob-grid-layout .ob-rec-text-wrapper .ob-rec-label{position:static;-ms-flex-item-align:baseline;align-self:baseline;border-radius:2px;padding:2px 6px}.ob-grid-layout .ob-video-icon-container{position:absolute;left:0}.ob-grid-layout .ob-video-icon-container .ob-video-icon{height:100%;opacity:.7}.ob-grid-layout .ob-rec-author{text-overflow:ellipsis;overflow:hidden}.ob-grid-layout.ob-text-on-image .ob-unit.ob-rec-image-container:after{content:"";display:block;background-image:-webkit-gradient(linear,left top,left bottom,from(rgba(0,4,7,0)),color-stop(76%,rgba(0,4,7,.41)),to(rgba(0,4,7,.54)));background-image:linear-gradient(180deg,rgba(0,4,7,0),rgba(0,4,7,.41) 76%,rgba(0,4,7,.54));height:100%;position:absolute;width:100%;top:0;left:0}.ob-grid-layout.ob-text-on-image .ob-dynamic-rec-link{position:relative}.ob-grid-layout.ob-text-on-image .ob-sub-units{position:absolute;bottom:0}.ob-grid-layout .ob-widget-footer{position:relative}.ob-grid-layout .ob-widget-header{display:-webkit-box;display:-ms-flexbox;display:flex;-webkit-box-pack:justify;-ms-flex-pack:justify;justify-content:space-between;-webkit-box-align:center;-ms-flex-align:center;align-items:center}.ob-grid-layout .ob-rec-source{word-break:break-all}
+.AR_1.ob-grid-layout .ob-widget-items-container {
+    -ms-grid-columns: (1fr)[3];
+    grid-template-columns: repeat(3, minmax(min-content, 1fr));
+    -ms-grid-rows: (1fr)[3];
+    grid-template-rows: repeat(3, auto);
+    margin: 0px 0px 15px 0px
+}
+.AR_1.ob-grid-layout .ob-unit.ob-rec-image-container .ob-image-ratio {padding-top: 66.66666666666666%;}
+.AR_1.ob-widget .ob-rec-image-container .ob-rec-image {opacity:0;transition:all 750ms;}
+.AR_1.ob-widget .ob-rec-image-container .ob-rec-image.ob-show {opacity:1;}
+.AR_1.ob-widget .ob-widget-header {font-weight:bold;}
+.AR_1.ob-widget .ob-dynamic-rec-container .ob-rec-text,
+.AR_1.ob-widget .ob-dynamic-rec-container .ob-rec-source,
+.AR_1.ob-widget .ob-dynamic-rec-container .ob-rec-customText,
+.AR_1.ob-widget .ob-dynamic-rec-container .ob-rec-description{display: -webkit-box;-webkit-box-orient: vertical;overflow: hidden;max-height: initial;}
+.AR_1.ob-widget .ob-dynamic-rec-container .ob-rec-text{-webkit-line-clamp: 3;}
+.AR_1.ob-widget .ob-dynamic-rec-container .ob-rec-source{-webkit-line-clamp: 1;}
+.AR_1.ob-widget .ob-dynamic-rec-container .ob-rec-description{-webkit-line-clamp: 3;}
+.AR_1.ob-widget .ob-dynamic-rec-container .ob-rec-customText{-webkit-line-clamp: 1;}
+.AR_1.ob-widget .ob-rec-text {font-weight:bold;}
+.AR_1.ob-widget .ob-rec-source {font-weight:normal;}
+.AR_1.ob-widget .ob-rec-date {font-weight:bold;}
+.AR_1.ob-widget .ob-rec-description {max-height:53.0px;overflow:hidden;font-weight:normal;}
+
+.AR_1.ob-widget .ob-rec-image-container .ob-video-icon-container {position:absolute;left:0;height:30%;width:100%;text-align:center;top:35%;}
+.AR_1.ob-widget .ob-rec-image-container .ob-video-icon {display:inline-block;height:100%;float:none;opacity:0.7;transition: opacity 500ms;}
+.AR_1.ob-widget .ob-rec-image-container .ob-video-icon:hover {opacity:1;}
+            .AR_1 .ob_what a:after {content: "";;;background-image: url('https://widgets.outbrain.com/images/widgetIcons/achoice.svg');background-size:100% 100%;width:12px;height:12px;padding-left:4px;display:inline-block;background-repeat:no-repeat;background-position:right center;border-left:1px solid #999;}
+    .AR_1.ob-widget .ob_what{direction:ltr;clear:both;padding:5px 10px 0px;}
+.AR_1.ob-widget .ob_what a{color:#757575;font-size:11px;font-family:arial;text-decoration: none;}
+.AR_1.ob-widget .ob_what.ob-hover:hover a{text-decoration: underline;}
+.AR_1.ob-widget .ob_amelia,
+.AR_1.ob-widget .ob_amelia_covid,
+.AR_1.ob-widget .ob_logo,
+.AR_1.ob-widget .ob_feed_logo,
+.AR_1.ob-widget .ob_sfeed_logo,
+.AR_1.ob-widget .ob_text_logo{vertical-align:baseline !important;display:inline-block;vertical-align:text-bottom;padding:0px 5px;box-sizing:content-box;-moz-box-sizing:content-box;-webkit-box-sizing:content-box;}.AR_1.ob-widget .ob_amelia{background:url('https://widgets.outbrain.com/images/widgetIcons/ob_logo_16x16.svg') no-repeat center top;width:16px;height:16px;margin-bottom:-2px;}@media only screen and (-webkit-min-device-pixel-ratio: 2),(min-resolution: 192dpi) {
+.AR_1.ob-widget .ob_amelia{background:url('https://widgets.outbrain.com/images/widgetIcons/ob_logo_16x16@2x.png') no-repeat center top;width:16px;height:16px;margin-bottom:-2px; background-size:16px 32px;}}
+.AR_1.ob-widget:hover .ob_amelia,
+.AR_1.ob-widget:hover .ob_logo,
+.AR_1.ob-widget:hover .ob_text_logo{background-position:center bottom;}
+  .AR_1.ob-widget {position:relative;}
+  .AR_1.ob-widget .ob_what{position:absolute;top:5px;right:0px;}
+  .AR_1.ob-widget .ob_what{text-align:right;}
+  .AR_1.ob-widget .ob_what.ob_what_resp{position: static;float:  right;padding: 0px;font-weight: normal;flex:none;}
+
+.AR_1.ob-widget .ob_what.ob_what_resp{padding:5px 0;}.AR_1.ob-grid-layout .ob-rec-image-container .ob-rec-label {bottom:0;left:0}
+.AR_1.ob-grid-layout .ob-rec-image-container .ob-rec-label {font-size:10px;}
+
+.AR_1.ob-grid-layout .ob-widget-header {font-family:inherit;font-size:18px;color:black;margin:8px 0px 12px 0px}
+.AR_1.ob-grid-layout .ob-sub-units {margin:6px 0px 0px 0px}
+.AR_1.ob-grid-layout .ob-grid-button-container {font-family:inherit;line-height:1.25;font-size:18px;}
+.AR_1.ob-grid-layout .ob-rec-text {font-family:inherit;color:inherit;margin:0px 0px 0px 0px;text-align:left;line-height:1.25;font-size:18px;}
+.AR_1.ob-grid-layout .ob-rec-text:hover {color:inherit;}
+.AR_1.ob-grid-layout .ob-rec-source {font-family:inherit;color:#757575;margin:0px 0px 0px 0px;text-align:left;font-size:12px;line-height:1.25;}
+.AR_1.ob-grid-layout .ob-rec-date {font-family:inherit;color:black;padding:0px 0 0px;text-align:left;font-size:12px;}
+.AR_1.ob-grid-layout .ob-rec-author {font-family:inherit;color:black;padding:0px 0 0px;text-align:left;font-size:12px;}
+.AR_1.ob-grid-layout .ob-rec-description {font-family:inherit;color:black;margin:0;text-align:left;font-size:14px;line-height:1.25;}
+.AR_1.ob-grid-layout .ob-rec-customText {font-family:inherit;color:black;font-size:14px;background-color:}
+.AR_1.ob-grid-layout .ob-rec-brandName {font-family:inherit;padding:$dynamic:TitleMarginTop$px 0 $dynamic:TitleMarginBottom$px;line-height:1.25;font-size:13px;font-weight:400;}
+.AR_1.ob-grid-layout .ob-rec-brandLogo {width:$dynamic:BrandLogoWidth$px;height:$dynamic:BrandLogoHeight$px;}
+.AR_1.ob-grid-layout .ob-unit.ob-rec-image-container span.ob-rec-label {background-color:#666;color:;font-family:;}
+.AR_1.ob-grid-layout .ob-rec-text-wrapper span.ob-rec-label,.ob-rec-source-wrapper span.ob-rec-label {background-color:#666;color:;font-family:;}
+.AR_1.ob-grid-layout .ob-widget-items-container {grid-row-gap:15px;grid-column-gap:15px;}
+.AR_1.ob-grid-layout .ob-widget-items-container .ob-dynamic-rec-container {padding:0px;border:none;background-color:initial;}
+</style>
+                <style type="text/css" class="ob-custom-css"></style>
+        <div class="ob-widget-header">
+    <span class="ob-grid-header-text">Sponsored Content</span>
+<div class="ob_what ob_what_resp">
+		<a href="https://www.outbrain.com/what-is/default/en" rel="nofollow" onclick="OBR.extern.callWhatIs('https://www.outbrain.com/what-is/default/en','',-1,-1,true ,null);return false"><span class="ob_amelia" title="outbrain.com"></span></a>
+	</div>
+</div>
+
+
+
+
+        <div class="ob-widget-items-container"><div class="ob-dynamic-rec-container ob-recIdx-0 ob-p" data-pos="0">
+    <a class="ob-dynamic-rec-link " onclick="" href="https://lebergesundheit.com/ad-1-ob/?utm_source=Outbrain&amp;utm_medium=Discovery&amp;utm_campaign=Desktop-DACH-tcpa-adv1&amp;utm_content=%E2%80%9EWenn+Sie+zu+viel+Bauchfett+haben%2C+tun+Sie+dies+jeden+Abend%E2%80%9C&amp;utm_term=$publisher_name$_$section_name$&amp;ad_id=00421e03f84d954cb7de5d4ce30351063a&amp;cmc_tid=$ob_click_id$&amp;obOrigUrl=true" onmousedown="this.href='https://paid.outbrain.com/network/redir?p=t67V_AGv65r-2RqlK451knAv7EPN1SkvctldKqrcWFuVgKOsRWoMZA4jXGIQMY4r59UHn6oP_4DtShlgtP63987Q7QN61A7iuN8dkbvDghFLH8Ps937zIS68y3TTEUsm8zls5sB-nLQr16j60PVmLb9GZ_2g8bhl4XghClWhP0dPK0sUetK08JGQL7e8gpw33kadNDZO-yd6T7hGe2NPeFYcB3L4vIYMp1nNDIGum1F3wm8EWBcoXIXSZy-sxy-uhJiepIpxqVM6TQ3iu8M5L9aKDyuqkiSWnlmQaMu7O6fEO1uh2JRCiGVfWSzsZ5ZLaqFYpbiWuUzMeZDWeJNPvSa51y5AcG8PeJXpljm3IkZSGhf3HAWi3UDZlGS2dNUy9A68_iop_Ti8rorcc5Ule1rQezyMoHT7bJvatnIBmwUqsWXGOIXe3zWGVR-WGsI1zkBPzFMxEL76l1eryOrCg2F6G_5rkBYvs-DdDvpoe1oKNYGs5OFORtiWBNY_bhrB4bRSMHlCzLQdDglqKvFm0VTbEct77E4ylxlou3wGNIIo9SaCcgCcr-gyG9aX9p9I3QrX4AkBYtKGqOcU2cDwtclppsbqv8aXRoLb5jYJrJSjFJgyuoEb8QAIn2YFnca9mABLQOt1YTw2A3yIUqTLP2VWo4Tx2mislkRyuQZ2lWtlgqzWkdc4oH0SwX7Iv7sFZztAzEJ6A6iOACnd9KzRi1h-jUshQmLfQwiq98PD33yql7GEERy6aOQWqkQHVcGtX6zK-SiOn7VnImCQbkyng5QBzeXd1QeN-7AKb1-zr48g03D25DjVtv9zxurVcF9cF89Kfq2hiqPQtFiIwFGgMEeWVwNnW6yu_LMnQhOHL_IePu3iey91HU627MUvHYC1S2b8eZ2C0AJYwMRRcXK5Fe3EV8kx5lmb2cpPA4pAzk_C4HQOYxwE5Ap2LRK6VzGOdfyVzMYpp2pC8nnV8XWo3blVn02_74-Gfz5nlviO5qsVp9XNcgowxtSQT97YA_tYPcv7wDu-wH9GH80yZPSY2r_FXlWifLb-dsFfzg6_qE2xY97UErycrVZxicmr-2a6nzIzX39Sa6JX44VJP8PKgz_gVocX4zLLG9gwm2-ZAVo&amp;c=f0da3d96&amp;v=4';" target="_blank" data-rec-en-did="gt8dm3R--QHDp9xoM_yIgQ" data-adv-id="54127654" rel="nofollow noopener">
+    <span class="ob-unit ob-rec-image-container" data-type="Image">
+  <div class="ob-image-ratio"></div>
+                      <img class="ob-rec-image ob-show" loading="lazy" aria-hidden="true" src="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/eyJpdSI6IjYxMmYwNTE2NThhYWRiZGY4M2VkYTc5M2Q2ODZkNTFkZjI0ZWJ.webp" onload="this.className+=' ob-show'" alt="„Wenn Sie zu viel Bauchfett haben, tun Sie dies jeden Abend“" title="„Wenn Sie zu viel Bauchfett haben, tun Sie dies jeden Abend“" onerror="OBR.extern.imageError(this)">
+                                                    </span>
+    <section class="ob-sub-units">
+        <span class="ob-unit ob-rec-text" data-type="Title" title="„Wenn Sie zu viel Bauchfett haben, tun Sie dies jeden Abend“">„Wenn Sie zu viel Bauchfett haben, tun Sie dies jeden Abend“</span>
+            <span class="ob-unit ob-rec-source" data-type="Source">Lebergesundheit | Sponsored</span>
+    
+
+    </section>
+    </a>
+   </div>
+<div class="ob-dynamic-rec-container ob-recIdx-1 ob-p ob-rtb" data-pos="1">
+    <a class="ob-dynamic-rec-link " onclick="" href="https://r1-usc1.zemanta.com/rp2/b1_outbrainrtb/39213054/117785105/CCM5P7YIQKCLBGP2DII4SUU2VQ2J5WZFSBGVRWWBK475ZHMZDPV4CRTJFDBRFLBQAOTXAZLVYCMPMJCXPYY5LYHY7C2UZQRAAQBIMJBRAPMXFISDZWSGNDI5NYSMBSCVLPZ557LQENAWL67ZYQXSIKXVZDL56Q3M63GVMJUUO5O4ZA5ZKBJTQD4YMYBFGRWBV5ATJ6JGTQDCD423M76CYL4RJ5XWYGPRZBIN2MRKJTEGSRQSYAPEHUBHUZZKAFBXUZUIMYEERFE32YSV7TPUC4GAHLHIDJVYYHKHLP53ODNTYIRPUVU2OM7IIL2W47HBPMI3GLMMM4YSRASZSHXWQTHUXNMOR6LVWSP5Z6DD7W7L7F3GHFICXAM2CIBPO5XIQAIMO2IZFWBAQWQ7KN3P35ORGQF7QAFO2MS2JEEPSQHVH3PUULLUYKXMXC3YEJ6OMBTNX723GFTWFEIYVNVTAUSVNLUPL4FO4OQ73P53B2XWNDFD3JZ4NTEJYPTJXXHJVW47SBI6AW2XB3J7PG56KWTDTNEW45AIONZJJK6EYFPLEZCVKDGLXSJGNIE7Y75WRCJJW5IIEKAZEJEFIO2IPY4RYTHLXCESNHYS27Z2TIPBQGMIXEPQL5HY6IEGAYMWHHYC3QQOOM2FAFGBPZ7TWP4XPDVN6C3JVJHUUFTYYMKNJTQMQCFEIKQ3DCCI7ODJFPTCDJGG35WLTR2J2Q3W54ZSQVLUNMU7BBMHGNBQRCXVDHGGHYU72OUWZRGUK5A27RO3U5HNJZSQLTXIKX5B2JUFMTXOZHW6XWOQJYJSEUBHLURXHWEWKCTQKIPZZVB3ITM2MBGDB6DICC6SUQD53PE4BNEWF5CUSJ2KVNQOU7TL4CAB2RMIKMBFFFQR5HQAZ5SBYRJX5DZ55ASIFW2XJWM6COXVOWXD3U6LFJL3K4K5NLVP3Q7IV5U4YFDJAKDFNWZ2L577NNIWKGYUTIMQEPRYNJKQD2PQWNCEKNBV2JZDM52A24KT7GDFX4ARNUUP/?cnsnt=CPpzHMAPpzHMAECABAENC-CgAAAAAHLAAKiQAAASoAJMNW4gC7MscGbQMIoEQIwrCQigUAEFAMLRAQAODgp2VgE-sIkAKAUARgRAhwBRgQCAAASAJCIAJAiwQAAAiAQAAgAQCIQAMDAILACwEAgABANAxRCgAECQgyIiIpTAgKgSCAlsqEEoLpDTCAKssAKARGwUACIJARWAAICwcAwRICViwQJMQbRAAMAKAUSoVqKT00BCAAAA&amp;obOrigUrl=true" onmousedown="this.href='https://paid.outbrain.com/network/redir?p=C0G7LDl7eWs8el2ntjq6FMteIiMzM4rOLGdZbKnIfz9edx150SKvI_Yp73WgASpbEgpan93cHuAa9PPgVMmwNwi7X-Y1jg-TZRMy1jBJMJHrpGDZMhEOdtI-4hWTouG37XFl1Tm6NEqfamFZfk4UEevkCbKw_h5wyOEanAiEwTwVCeOiw4A9nmLwocBd6Q3iEQoUyDvtLwuhRy8bxYk7MEnWg_Ecjg34G6oH6yVoQRrb0QQ8i1tpfEZBPUG1HSc0O_4rztzI9zPyqD8OY5Cj9n3NnH-IwN5BHEFI4wxuMGfCGyGP51UH8hyzhg-6e6h6WB1C8b4PiZUI8IwYbTNXoK6dt1A3Edu8PKZMahD1tZt3G_z54K7RjKAEoZcCd80uuMnEwV1gWivLtEpfGEVRcn8Ffub63SdGa-tF2gfigiramTBPVUwGNCbRHXl_ddzkDQiw2lRxnRxN4L52XThwZICyWx4Cd34LCvZbQTLqn9ZZ9eln1uKJ4db-nIFZfTDMzefbpFukWYM0tbPD7s_caU6AwP-LRGU-u6WQI7TkdH-FcG9dc3jv2KmSnNTdtXadkhGEoSMGssWmM5mu3PI8DrhxghhuNG_k5JOBPDa50PsERMWMilS_zpTDexbo-9oZGIXjObq1D1OipOUSM7K25j6yugAnGe1oj4Dc2J-3wmEQFEQnvvI3VXEq3QWMBfDLUUYdDK1556gv9rD6SS2j6J3CRVe6h611Q5V4d7L3q2AuWYNNdWqLYdrdStCtrkjUNYjfGUU4htM2YddYisdquOYcj4KiY3vH7MQaV7rlr-KmY6aeSTSDxoIEU2FqWIXWHYCU4q21P0UDENxgkqxtfgzkYAsRwOrwu1VGTK3HZmBbeJ2MB2xDaa__jzU4OgPQniVJWHVf2DFeS6Dq-FEzGKgStlIS8BKMcMoSBMG6d9IbE6r3rj7iU0HWk7DlfttwaA17aR9-hx3uxaBQMeVHByLDduRk6ErvoA3iBncW7hWLWMmwiyepz55jrl4xhY2MmjGqxWtGB-O39XtdU1j1VPO6OodjcgcY0tO9PB0E730NWD_XIoJf5wrIKA-nwkyG-sE1FBIF-Wo4ILKwlEVn30u_7mlWRIyTqvq8rZFzeV-3F4GmndwTRbECa2hvAUjmg11A9mR7YZk8an3Du_-apy-7AttiOuq-jU9LkH3pmpUCGtTYAkrRAXDJhajlJ6qAJPzcGGttYETDODAKE30xJmJqRRclYmJQOpdD4SXKyAiZbvUmijP_d3S9ukduiOyqMeySgqUoXZTzSsv3SN4FUGN1Dmp7qC1K4UiAVBVN3F80172T0nI_ZFAEndx1Y77kqHWcA6-9ZNq_yaP3kwJdA3KdWLSH4GRSvh2RBwjWz9_NyrwmOMA4QDFNZ7JoWddO3zb8JrdQZuOaDHzz4oNAsH54qVheYfYxJlXJUv244IrjQeyBi1IaR9QMp-RBAMBBkds-2zQlgykW3fFXknXZmRB3NckCCWI7WaqZ1JDCpU1HtBBtWOw4UyiFGObC9sqCxWYRoIgefYnSgPyXG9gh3r2P2P6pqnYzR6d1OibUsVy3h-8hn0UDkcpBlbS4f0e5Pm_8uBE0PeB_Y0QeRcc4UkVLejIMgt5It30LUVAQO030gJSmp_z1ZKBRXqlnyX649Xc8Odmhx6y2CfCUm5qaNNDDrbuBcrgAFE1HFadkrUglENMygNt6o6JuvuCJw9fl1ROEpvO_HUlJDK0TXjXpJwvQ79oZh0oLhdN3gBeuBon-cUjAvVoQf6INzQF1KJ946VYpEC6DkRxLS4f3HBMbScKG4UY7Fh1HVSL0xsP3bBgkIKWNzagNenkf6MVs3rlnMDGKNWScgH-f9GSjLJqwpxUpGeUY8-3XFAA5Bmn999394nDwujIEYIclrHQnSKulSS7EfhPw2GKLiF1jAjGDQO8-Bc03f1J4MoOMnSPKm1bRXsr8gbOlSyDmp0NmTEhtKLIU9K16eP1_v5Z4nWeTumOde8V74cjTtNINaCUq2NAbrWiG-Du1N_rLbKBT5q_G2XDxAtV3dgIT5cmh-7-k2EoXUz89T1KTA8Ojq98uH-n7dtGUhJ5uvojMmqPxB9h-L6nekEZ9WRsZtapTjO25rmT_az8uKa1zLEVAz9Et9go16YO86kPIIKHYLh05SPFrBM6D38NG0fPFYYhLv-zi-Q&amp;c=c24c384e&amp;v=4';" target="_blank" data-rec-en-did="C4gJ6cvkVwjPRftvMJMRYA" data-adv-id="56493341" rel="nofollow noopener">
+    <span class="ob-unit ob-rec-image-container" data-type="Image">
+  <div class="ob-image-ratio"></div>
+                      <div class="ob-rec-rtb-image" data-strategy="cover" style="background-image:url('https://zem.outbrainimg.com/p/srv/sha/a1/da/80/5a7fc1d4f5f5d3ffd6464b28657f7feaec.jpg?w=390&amp;h=240&amp;fit=crop&amp;crop=CENTER&amp;q=45&amp;fm=jpg');background-size:cover" alt="Unverkaufte Möbel werden fast umsonst verkauft (Erfahren Sie mehr)" title="Unverkaufte Möbel werden fast umsonst verkauft (Erfahren Sie mehr)" onerror="OBR.extern.imageError(this);"></div>
+                <span id="ob-ad-choices" class="ob-ad-choices" onclick="window.open('https://www.zemanta.com/privacy/');return false;" style="
+    width: 12px;
+    height: 12px;
+         background:url('https://widgets.outbrain.com/external/vendors/disclosure.png') no-repeat center bottom;
+    right:4px;
+    background-size:cover;
+      top:4px;
+cursor:pointer;
+z-index:11;
+position:absolute;
+">
+</span>                                     </span>
+    <section class="ob-sub-units ob-cta">
+        <span class="ob-unit ob-rec-text" data-type="Title" title="Unverkaufte Möbel werden fast umsonst verkauft (Erfahren Sie mehr)">Unverkaufte Möbel werden fast umsonst verkauft (Erfahren Sie mehr)</span>
+            <span class="ob-unit ob-rec-source" data-type="Source">Unverkaufte mobel | Sponsored</span>
+    
+
+    </section>
+    </a>
+   </div>
+<div class="ob-dynamic-rec-container ob-recIdx-2 ob-p ob-rtb" data-pos="2">
+    <a class="ob-dynamic-rec-link " onclick="" href="https://r1-usc1.zemanta.com/rp2/b1_outbrainrtb/37899375/115082126/KPKHKX3BVVZSJDKZ4VTA2IZMKABNPEQJGGMLRBF2CD7MOG6U7ZQ4GNVWGMOEYG4YNW2UJIHYJFKRK42T3ZU3H3I5RAWIS3MPZMDIUMAQBFGL2MFDECZH7DVATYL2Q5JHLFWA7S27MWO232JLY2AML7KISRGTSJ3OCXNZJJPZGOANKOTBTAW2FKLCZ5ZDFLZUBNKVMOP2N5NADWGMYSS6H3M67JT3WMGOB4VAKRXZSZUNNWHQMJIQX2FKDRL6NY5TTSISIT76OXIE6M377NTV476V6JUDUJUB3BG7REGK5OHEUYX7TZ5EWW63VKGD5SP6WI6JGR6PYSEA6LUIXDRVCTKSHNL7MDXKMZU4SOARQPI3WD2KYFXMFIBV7WS2IUGR7MRZB7NOR4F5WRRCKONVE6EAHCYVFBVRD355MM52TFPAJTRJGQVVL5RH56UUXISAZAR73JG7VUOF5QAOHELLBG2TRE6C4S5RKESWASEXEXLDT2CXQBILTHCLEWKM3MDQCL62U7NZ5TSGV3TKPIUVQYD5KZWXCEMPV5JH7E22RVW4EQGQ5I5UIISPR4R6WYILICJI3P6WXCIMH4MAVJGY635SALFVXZBT2C3VEJ7TMYMPSZRJRFGGVRHG3HKF64AH7SY7USXQG3WCE2VTVKG3DSVTTQIHIVWJYS6WDW44RIWPOFVIYJGERDSVO64ICX2PRWLIH7HTQQQ36MI3H7CYMCOUKGWLEAUZ65XA2G3Q7OH34OR554NR6HU57AEQMY77AAJIPFNTOG4O7ZA2PM4OMCK6RG2YEQ67YOIUV6OGMDGEFJMJZ2JIIAZIPPJIAOAZOMXPMU3X2KNX7NNVTLNZ6KXHYM5KPTL6IKISLTCBVT3XQN5JIFEYSITBGXIDKAQU6SW4QTVC2WZPMU7WZPRVYCRMT5E3ZNVIG6FW2BHQKJMNQNOFWRYRIFIBSCFILPWJ2GMLN3RT3TBKARQ3V7PTMSQMIR5RN37M7HOVZ65IXKPEDHHGTWG6LJUKXUAPAGBEBEFDEOVDGTRNCGSC4Z2UKZSKAA/?cnsnt=CPpzHMAPpzHMAECABAENC-CgAAAAAHLAAKiQAAASoAJMNW4gC7MscGbQMIoEQIwrCQigUAEFAMLRAQAODgp2VgE-sIkAKAUARgRAhwBRgQCAAASAJCIAJAiwQAAAiAQAAgAQCIQAMDAILACwEAgABANAxRCgAECQgyIiIpTAgKgSCAlsqEEoLpDTCAKssAKARGwUACIJARWAAICwcAwRICViwQJMQbRAAMAKAUSoVqKT00BCAAAA&amp;obOrigUrl=true" onmousedown="this.href='https://paid.outbrain.com/network/redir?p=Ww2pKrS7NPl9VMxbsOzx6tVvO8x6mpwqZbhfdoVKE1npeNHLsUHPn7B-X0KW8qBng38hCkrLMm8p5wpCvfOnsCVS5dMmUf8dJetA3Q-euDXK4DAkOmhu4EE-C459b6PqTnW3uNrwdtJex7RGiBMItbAEZaXVMxXCBBWWm8G76U-yNGJhubfGpSHGga6ZP5UEbDNsYMOckczFwURkdp__-Cg85VxlCtHUMYQCmPcmbNL09SgY3Kq1zNIJfw3kO7Pn1kO3n4yPD74Ppd31cXoWCKs4uauG5wA3RU39OmDbXswhoTq7aiwgGbNXgnETCH_kpY7tLEbN47HZAEsPXKy8MDD-3nlQO22izXsAJ2sHX06oI64CGusTkKjfVW1AD8_ZN6BKb23WjxsJk_wz6PcmzedgE5IVauYZQ98k4v9B_atszxfxOPi8OrbXr6Wf1SAVfTJZyEXW6D54Pq6kkGt0gL3VVuxuK9xbDfbsY_brUKPl5CApU5v4yl09xPvV-FUulcGm5s07jopoClxZ6hRilzXGNq5K_ztMxtWKYlsSslZGjeBytywm0vkfm6devGBE0TIv2QNUg_KtJz2yI2E6O-W_iD7Seq7MkiuKcREDxhA8pRE1Gqhc523P-w7mzIOJ9GMSut6Pd_3SddiPejOimvBfxxKImNVFq7TL7ldDX0YUz3O8R9luv72qB3mosilDUfm1RMDSgi0j_djDqL_M1qlw4S_Tkae7I86H4BOc5gK3xo4nH6GrsO4a9-eZ8Z0UAl0GjA5L-xK21LCs_nNifG4hyBicmsu2BCMI6xvUqTsoeVPWHRuddbQSvKa2MAwdYIzcxhcaveBE7CvQkh9YwL9o7aN8DrcT0IQcsjNZWWK5Kq0-DPqYkM63sOQV09PK-xBLcw1-ieGVVKGmQYchiHC2LXDUv318OK0IRx_qnWhH2ykgkZaUFGt4CI6i7HKp-BLhw7hg7vUi_4SKRtGbHPUaFlf4X2NIx5yni6kI7nigslJKX6Mt8hhD8QcJeyGEWFsv8Cm5LTYFxGfAz9T790d8EUsFqEqDeg0ZC2rgMV_olvDJ50OHicJhIPRbf-Rer6Ey3_yxnTssT6jR2oh0c5InCD1aOTJQM6YplrGHZNB21NRiBOuaxF22eBcjaueI3Gatbl9R5MmpIgD_3Tt96VFl4eGiB2Iw75YrT5hsKZwQop8ZVv7aovRj25Vq00wM6XFb0PYcG9fGzReIY-A1HedoNrXJY6nlLUiUBvz2_Nrh51CQWWI2qIzCvDn83JCwA0rtrYX4qW6_GrxurygcZ_BQK5QhKcpSm4WKB8U4MyaohalmNj9AnZGlaxU6eCNe1x4YOi2vSbFAXS2QRfU3XBTqicn0-UpnbjKNypw_klJTTz4ZNLGhFMc3SWvfSK3Pnzg9748DZeCIulysr4w35DbwHmqJwLxVejS-3WS34t6sDe2LPhlQjs9HLeyMbqguBv8L_D1UWMkcbIfKzz0xSet-BJ5NjEr9vXDBL2EmRj5QLX9fHpYmg1WE7MBKJwCfLe5AV36cFcM_Hs2nszBoxx_M4gehay_eR0BEa-OzIvfaj91O7QiCxDBYa2hgP1cy_sQfMtFcs5mVHi1JXLRb6Dt4OhoAKhLi8EnQSOpIWBnnagLhZW2hBfTMtlxQ5z_rjNIlGS0Pja32plZ191z_ZQbx5fN2r56HpQIc0mHjXwxVHz2G5oFRhRjw7kPOpjIAfT2XeTb9L1xnRltQNQ2wlDEO16W68AWmkboaFATFVDGpvidN7sLNvWb-CvQDSAo9R6fSW5WLuX3uygBZHtrnf6ZApd81UbxokJXK50Y0FzkISkCLtwBTzIx6yhxSuTK3BXgGaTkGPQ2cc9Z9JH6v7rSLCss9p2Xdi0leGgbsroDibNiwSCDco-sevSXKZO6hR5OWq9JIHuBuTbJCaOFNdZJ_dnwJfMNrllF3x1556MmMkCBKdYNjaYYA-9LYtKTVXi3lGGMfNzVvqMLUqY1ZY764bq1-BdjCg73YM_8LRBZJeFCQi2ddDCVy7GBvH93OvdEvQq3tXKwJL6m00twItHHEkkNBFaRelJ9sRzlWe6MFyME2o8LfhmIhIy-J-ZpxncK6HeEeuwgK0p2a_21OHLlX4loUoyVsM8bm95Hvj89_5ymzcRCR5TXOELKPCFZ5Q7zX78uD-REWakBW-W4mbwahndc0s0KGc4mW651cBn7pWZd51UQhOlDAwaVW2DCp&amp;c=8d7a5302&amp;v=4';" target="_blank" data-rec-en-did="AG0WowapjmP8GM1G2sO75g" data-adv-id="55102700" rel="nofollow noopener">
+    <span class="ob-unit ob-rec-image-container" data-type="Image">
+  <div class="ob-image-ratio"></div>
+                      <div class="ob-rec-rtb-image" data-strategy="cover" style="background-image:url('https://zem.outbrainimg.com/p/srv/sha/af/fa/ad/dee4a91c1efd1cc9eb50b0b26b2e0edfcb.jpg?w=390&amp;h=240&amp;fit=crop&amp;crop=CENTER&amp;q=45&amp;fm=jpg');background-size:cover" alt="Цены на квартиры в Дубае могут вас удивить" title="Цены на квартиры в Дубае могут вас удивить" onerror="OBR.extern.imageError(this);"></div>
+                <span id="ob-ad-choices" class="ob-ad-choices" onclick="window.open('https://www.zemanta.com/privacy/');return false;" style="
+    width: 12px;
+    height: 12px;
+         background:url('https://widgets.outbrain.com/external/vendors/disclosure.png') no-repeat center bottom;
+    right:4px;
+    background-size:cover;
+      top:4px;
+cursor:pointer;
+z-index:11;
+position:absolute;
+">
+</span>                                     </span>
+    <section class="ob-sub-units ob-cta">
+        <span class="ob-unit ob-rec-text" data-type="Title" title="Цены на квартиры в Дубае могут вас удивить">Цены на квартиры в Дубае могут вас удивить</span>
+            <span class="ob-unit ob-rec-source" data-type="Source">квартиры в Дубае | Sponsored</span>
+    
+
+    </section>
+    </a>
+   </div>
+<div class="ob-dynamic-rec-container ob-recIdx-3 ob-p" data-pos="3">
+    <a class="ob-dynamic-rec-link " onclick="" href="https://seeitclear.org/view/AreKoNoGnUYSkwTk6jUifKJIDyEfw9usULpUzsfEHzh66g?c=41221&amp;pid=4443&amp;tid=$ob_click_id$&amp;ob_marketer=Vi_all3&amp;ob_publisher_id=$publisher_id$&amp;ob_section_id=$section_id$&amp;ob_ad_id=00789264e346828c044a887702a31b30a9&amp;ob_timestamp=$time_stamp$&amp;ob_platform=WEB&amp;ob_campaign_id=00df6ebee0737244d33192f7b3dbdd72d1&amp;ob_doc_title=Do+This+To+Restore+Perfect+Eyesight+Overnight&amp;site=VisionUSAll_$publisher_name$_$section_name$_00789264e346828c044a887702a31b30a9&amp;mavcid=41221&amp;ob_marketer_id=00a07ec2b3dbe6ac208aa87322c5d04579&amp;ob_cpc=$cpc$&amp;obOrigUrl=true" onmousedown="this.href='https://paid.outbrain.com/network/redir?p=23crFxExz4BKXxwAVEtyzkTF02_IdVMeSMQoneKUG3O1Uwv7tdMk9t9WPxeOluEii3T4AMfOUAxgBiApfgUpOnzXvmcW5TGyaOebjJGF-ug2pHwXAJ2978SWicewO1KEhFZ3-yDixsp1g96UoK7AXNKYpN0-IOo8DVpqHA5y60qd_o9ZPFiuHMHVUbqcmI0Di8ZnOqU1zv96z117ImxiK7q3Hxi9u1PxchK9mQmPUWy_VqbmdMqzruQU2ju0ehQ-BqQ6alwJX99kz9_SnL2lGoNgg_X5zdwQ1UTYsxR6sT7cv8pf9ixTBXMs0NuwBLe5Hjm9QTyNhm7IlfNsm07s53MrsjL95IVn2xygiY4JBWWOG4y7GbWLtfmDr-1A5yyWlUBgqRhdxUK_84A8NxK52Sc7KU7hq8IS3jmc1j1JK9nlUn80RFsuPkgDP62R8JRMH8zZVRCgLa6vi-ScBQ6HUrp3XT3O3eP3xsCk3-WZNg0RsVYrANbZ70BYtnJBpcvhocAVqCO90aK8NlkfXGrd-tN3WG8saCjTY6jVP0UHpQO51nUPEp4LOg_-IPFt8jpKqb-z1U46WJI5t0e9Ar-zUP5hiAtlMJ6ioX2-8_vdawnVs8hjVpMvnDmvDvgbGFhCizN0ZVZsXZvjceEwrJ8lPMS6yPIaz57AdUQ4Ig5TGdLyr1sdXsoUlYk0EuSX32_2-npknz1W2EerdWHKHf7o37ciQ09uMBOC3MG_ENn6zl5d3ryY1CTcwVqj_xc8-ZXwsLgxCeoenU5Gn4lNXDsoIfFF_xSDFtlElJUeHXbJIynwxrQwLPkgXzHUk0hKvXD581J6nddUDAkfZTvV-mrqSOZbK-DgWctQfp6WybIs8hYK3P9SUPO2PI5TgG1akmuByv-aL3-Jq85b5cnKnAkVts-TtW1t9CGTEKYNep-UeJbRE6WoheJDYc95WfBIdlaA3dbeJqlPoxA5ucIDEnXjkyJPq3iOJuSdGAHxr5uBYxHkiITLX3KZbjTBuaNrlCxxNfC8TyFiXEOTvPtXSbYGkNfLWLFkHrAqzcG67n0hab2JIGSG_ZKpF610c29pD__cQra6k5mcz_IxVgqh2cjpiw&amp;c=2f6f442&amp;v=4';" target="_blank" data-rec-en-did="WfGQAvMvPqDxtYpRpXQJ2g" data-adv-id="55658167" rel="nofollow noopener">
+    <span class="ob-unit ob-rec-image-container" data-type="Image">
+  <div class="ob-image-ratio"></div>
+                      <img class="ob-rec-image ob-show" loading="lazy" aria-hidden="true" src="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/eyJpdSI6ImFmODQxOGE3NzBkNTRhNTVhMTBmZTNhZTgxYjFhMDcyYjlhYzZ.webp" onload="this.className+=' ob-show'" alt="Nightly Routine Helps Restore Vision At Any Age (Weird but Effective)." title="Nightly Routine Helps Restore Vision At Any Age (Weird but Effective)." onerror="OBR.extern.imageError(this)">
+                                                    </span>
+    <section class="ob-sub-units">
+        <span class="ob-unit ob-rec-text" data-type="Title" title="Nightly Routine Helps Restore Vision At Any Age (Weird but Effective).">Nightly Routine Helps Restore Vision At Any Age (Weird but Effective).</span>
+            <span class="ob-unit ob-rec-source" data-type="Source">healthyeyes.live | Sponsored</span>
+    
+
+    </section>
+    </a>
+   </div>
+<div class="ob-dynamic-rec-container ob-recIdx-4 ob-p" data-pos="4">
+    <a class="ob-dynamic-rec-link " onclick="" href="https://srchoffer.com/search/top5/?s=zahnzusatzversicherung&amp;uid=74c9b4cb6b1c29fb19495bd1da63c8c6&amp;oclkid=$ob_click_id$&amp;obOrigUrl=true" onmousedown="this.href='https://paid.outbrain.com/network/redir?p=IR25YvoVV4ikDuGGnwx9geTBwu2g14zU5L6ZvGvb--PD0bgYRC2I7GFB6U5ND7ZLhXO_fB5mW_WD839SKKBHurkOTpwUGb4xOwvRQzs_uQ9eOGJGDNE546oQ7npIZvpvc4mUE1SrzqlNDrzAivycrTQt3tbZ5l0modT8u80p38jtzTHzXcZqRXvHz4wpTyGpCKHY1A5pXivwxRKoGvaqjmbhV9prBtqORgSOyiZEldjcDOYT2QYNEU1090X9vLJCeJw3N2Rgm9iQRDvW7AJAM8DY8bcFuZcI4GYF5vrybw-hRc8X2KXXRMiNWkTFGvQqiXLe2_SsVglBhBXSQ8LNLqNtzAKZQPScdgAt_RwOxTWbTbHSvvmzq2a-i9K4PJ9mTylOc6v7vfAcJ1-IZwapm8vy_eMVkMzLeIJdyQg1TewpmPIhmcyD_27Tze_71qyXXWjOoTt1awdoFcAOBGBT785m1MFOgim8GvNhXEn-jjJt8bHkn7GcqK0Za_m5gGMeLnIrd8Ixzk62X76Oec2tE5PIGwLjRXlFRcw-NW3pj02O97Kb6ytAc7C8fUgXoEqUajDTKCsCmqEFHAwKhzo4N9l5DyGtlR5whmDLlGzh4-X_vaz1md2iODM7DVv3UU-k90K6-kGZ9yMRdAFc8IRy9RKP8YhqPmUofAJ0I74K_TV1fmrSX0flm6kL7wip4Uxf7Fo_1JWLuoGTeUNMD3qhycL66BGwCL8j1dlrH9LPMEGrWutke3GDwSFzTaLyzf1skwBCUrgvH_T3HyW_ivsF1qBI0dS-mbQ-FdMY0NFmpqA_PJCrG6Vp5RXaT6LZ02kF4_r8CNrjD1A93GLDN2qac14syrzEvjykUel0-E_A0xXY_hlTZDhJlTnMxPutmuKVCcvnaJbGwtEQ7cXfc8gDJM5AWOQTGDwLUy-TQNESiViM8j2xwFUm9MsBAXLN63Pu1vh6GUBrACOKdFT7A6zYzHJRtblYRYLNzA7fCe4MAIJlRXjZ4ZC9xa5eniAo7dCdMy9an0dDSwCjuMjODIgYv6UIkTFxvBogNmK6ngvd5QXknrcbkWnW_NWyIsXzEwLPh-GyIFAFWNXHboCDmufc7tYEXHwoSglRyYHg5kivJus&amp;c=c224e892&amp;v=4';" target="_blank" data-rec-en-did="LmWt63vAXHUM1uXHAQH3Ag" data-adv-id="55133010" rel="nofollow noopener">
+    <span class="ob-unit ob-rec-image-container" data-type="Image">
+  <div class="ob-image-ratio"></div>
+                      <img class="ob-rec-image ob-show" loading="lazy" aria-hidden="true" src="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/eyJpdSI6ImI4YjY3ZjcwOWU3Mjk5MjY5N2FiOTQzNDZmY2Y4MjY0YWQwMmM.webp" onload="this.className+=' ob-show'" alt="Suche nach Zahnprothese Kosten" title="Suche nach Zahnprothese Kosten" onerror="OBR.extern.imageError(this)">
+                                                    </span>
+    <section class="ob-sub-units ob-cta">
+        <span class="ob-unit ob-rec-text" data-type="Title" title="Suche nach Zahnprothese Kosten">Suche nach Zahnprothese Kosten</span>
+            <span class="ob-unit ob-rec-source" data-type="Source">Suchanzeigen | Sponsored</span>
+    
+
+    </section>
+    </a>
+   </div>
+<div class="ob-dynamic-rec-container ob-recIdx-5 ob-p" data-pos="5">
+    <a class="ob-dynamic-rec-link " onclick="" href="https://www.networkcomputing.com/networking/how-improve-remote-network-reliability?testAd=drivenwc&amp;welcad=off&amp;_mc=otb&amp;utm_source=outbrain&amp;utm_medium=cpc&amp;utm_campaign=ncnokia&amp;obOrigUrl=true" onmousedown="this.href='https://paid.outbrain.com/network/redir?p=kQLEHrT8eYfBUb-a-XdqZyKomJtGqZYIr-fl2EAVMwxMU8vmONAU6gL79pW9xl0Pf2jLYhPmQRZ7RXiNb9ANS4nSxcjy5YhzGmTIwBBrpG3g5epaVKbIyutBklbNRpGASBIOvQwTt0Nr3dAvrCnh8i8834SLymK5CvnMMUy52gSxxGhh4avPke7pC-8WJEu7sen_-dtSzlnOuSNvPWrKhHWWdxQ02d3DFFFke42Z_OWB_s7jGX8aavXP5xlwA6An4WB_tqqijATgXV4XaXUVf-NRhloZF9GX_s1XL-_OxWzQ0WYDTXaYzvWiUcW2fC5glrwBKhqwbxw3VBxLOoRA-2A97fcc1AjqKbpTCEVbNJFJInbXge6AzOQ3PaBmuTDsxW_VfxkGwHGOZEDK8vV9sUJ_5uaA0SMEy5vQoIxmbkt6GNoFXTYuZB3g5i8I923ypHieNVuZzrbbpDJx0quNiOt5aurEjtUKNyNZ0cyV3QVsIogt6t3fS-lge9EeLcew63yJ40s65U5euPYR81Gvo9kx3fLXUuM5To9aRY_qhqGj8y5bVS9_TmhWwbhXiOMPAdPx68MjsdfxW5-tgLSDFQmVjycI-6mq9iv2rzCiNgZ2MH5h4m_Cnu9gm2KRVsCcWksWYMDhOFYVd_HP0I7JcSYMOwuTKDTgLs-GczCFVX4oLKb-yDW0vtY3Muwk5V0ZfZlIualhIbaAY5OLpC3TfT7YZhMqahDU-CZ4Ns_izIOnsYTO1j0cNaClwqzjf5gnJNFRE66p_aabFVJ-EuiAAUo5Fzuw-RlS5P_Hvk1VlYWIXOPnCqEOOhgpMP1TMkllJ5ajbFF2g86kmryuDDbZjV1xwFZMXk2JeZT50VWBzCMVmblj5Cy-5tVdeeTm1M1h0E2SN38Q-0CTpKG2jOIGlD51I0q31HmU2d4qyO295ppRB4aLIoWQ82UJnKb4IFP4CWucAHV4pmpNiTMbaFM8p9M1qutIB0kh7Gel3y1tu2sgUSB-VHROjUFGprpKEZGtPhW2GLdYPI7EGF_0w4WP90W21pFtgu9ZCTlwI8CGZg4bxa1fS0pZyYstgnQ2cU-ySob-HNja1gFXU22rLaJutbh-Z-Y-6tilquaz3gJ5nank5Lx7SIhSlczmMMXhDGys&amp;c=7fac1d84&amp;v=4';" target="_blank" data-rec-en-did="iaKOSjzNeAt2gVYa9ErSpQ" data-adv-id="245248" rel="nofollow noopener">
+    <span class="ob-unit ob-rec-image-container" data-type="Image">
+  <div class="ob-image-ratio"></div>
+                      <img class="ob-rec-image ob-show" loading="lazy" aria-hidden="true" src="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/eyJpdSI6IjM5OWJhZGNiYzc5OTRjYmQ0ZGE5NmVjMmM0YzUwY2JmODRjYTU.webp" onload="this.className+=' ob-show'" alt="How to Improve Remote Network Reliability" title="How to Improve Remote Network Reliability" onerror="OBR.extern.imageError(this)">
+                                                    </span>
+    <section class="ob-sub-units">
+        <span class="ob-unit ob-rec-text" data-type="Title" title="How to Improve Remote Network Reliability">How to Improve Remote Network Reliability</span>
+            <span class="ob-unit ob-rec-source" data-type="Source">Network Computing | Sponsored</span>
+    
+
+    </section>
+    </a>
+   </div>
+<div class="ob-dynamic-rec-container ob-recIdx-6 ob-p" data-pos="6">
+    <a class="ob-dynamic-rec-link " onclick="" href="https://www.networkcomputing.com/data-centers/upcoming-data-storage-technologies-keep-eye?testAd=drivenwc&amp;welcad=off&amp;_mc=otb&amp;utm_source=outbrain&amp;utm_medium=cpc&amp;utm_campaign=ncnokia&amp;obOrigUrl=true" onmousedown="this.href='https://paid.outbrain.com/network/redir?p=IY_js-HMEDp1asKs5EPBAU790H-Tegp1uKVpahn1VRQAOwlmufvHuWaHytyGQp_zmhP9ADwlBYH3_QQt4cM3IlCn4yBVm80D2YbzKJmzr8VITl92PGjyBJSitapGXaSCjNAEe7cQpgFGtSSGKQMXE3HdB4pmpweqBlmiOVfuk3UDRVLnyrrczABJC2QxbniIDbhKTkaJcn8mjLVQBZSk4S_JkSTbkfgwLSL8ax4MeIh2kd8vIbBxKWAzx3MstV8SiI4hjDHA-ZwR8vO3DlqpWkD2kXdaE8w7PWjpm6h1G0k-9W2kHSV4sfrzneShOdoeiZ0ZLkhnBkhQiHlEms2M2MbTir9t-WQ1Jgioz-Xlz_9MI2vLoYg_9OJiaS7dddCy49graxtw2PXSuMXTpsS8a1Hsb_UnDzYG1LLAHUvPWerdFWO1vlgWN-5C7GyylfSSsVJ4nF7jI1EpTVDhMck9f_ETxqo4cE2aO9Z0cxWXbmdQsbq3WeNP7AVzVz1tKNdpaq5DR2Tq3VCR0eThTU-TtFp_C-Egs7Y3VvPl5QWqBCRzlWPtxNyd_nTX_7BYdj5vOZTp-s7xurdiAPzwgbXMWy1cAX0i5RcopHvB8T440Ig7OuwEYG7FSxGVJGmehA9OodPc44sl_eWELY1OZLYWGHumclWB9mELKkdQ_NmnJLbRZerYfXVsQ-m0KRTZB4DsJOBAT8hOUnKiTLlU4FXlLpiqZEZFnSk9Qmo35sZ4r7XkIvJ0amliN0bD0noAknMunvUPcYdAlY9Z4Xv1GhmC6BChrb1DXeVpzZLf52n9vi9VAuxj4643CZOfxaxp7N55L9hW61AU0LO50njp_2lViaP3iOM5XSfKO7yoe8pbGkGsooUzH4tDOkbiznX8KVGVpDHnPwpoyLK8jAgcanvkSMQWhF4d9oFwrjJKWyJV9Dz2JcuNZlXZ1gUJGm88J4HT-yC49f4ul4LErduynH9S531hROhkoxfWaXuQrLzrWQOoJxPc6QCZaWJU1MxHGMV0IUSp1S_XBgqgc6r-H0pW_qqqvbKNZGZliigHSaVKLQynZnktsjPIwfGK2EKOnjfSRLDfUXsepP7vydTQfUCHWBNZQaz6K_bUnrHTVLlqVXo&amp;c=de7ee569&amp;v=4';" target="_blank" data-rec-en-did="PcRCddXUko4BPMaAW1PTAw" data-adv-id="245248" rel="nofollow noopener">
+    <span class="ob-unit ob-rec-image-container" data-type="Image">
+  <div class="ob-image-ratio"></div>
+                      <img class="ob-rec-image ob-show" loading="lazy" aria-hidden="true" src="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/eyJpdSI6ImI4MjA0YTAzNGMzMTE4M2IzMGE5YWFlYjk3MmM4NGRjOThlNTg.webp" onload="this.className+=' ob-show'" alt="Upcoming Data Storage Technologies to Keep an Eye On" title="Upcoming Data Storage Technologies to Keep an Eye On" onerror="OBR.extern.imageError(this)">
+                                                    </span>
+    <section class="ob-sub-units">
+        <span class="ob-unit ob-rec-text" data-type="Title" title="Upcoming Data Storage Technologies to Keep an Eye On">Upcoming Data Storage Technologies to Keep an Eye On</span>
+            <span class="ob-unit ob-rec-source" data-type="Source">Network Computing | Sponsored</span>
+    
+
+    </section>
+    </a>
+   </div>
+<div class="ob-dynamic-rec-container ob-recIdx-7 ob-p" data-pos="7">
+    <a class="ob-dynamic-rec-link " onclick="" href="https://www.networkcomputing.com/data-centers/5-subnetting-benefits?testAd=drivenwc&amp;welcad=off&amp;_mc=otb&amp;utm_source=outbrain&amp;utm_medium=cpc&amp;utm_campaign=ncnokia&amp;obOrigUrl=true" onmousedown="this.href='https://paid.outbrain.com/network/redir?p=QE33hPQPMa1uNyttH3tAUiCUgMH9bjNU5XwPRF8T4_J5nw0Tp88cFly-z1xQSapvrKRLVHJ0JvW1iC2_mj298TKnASIhswo0b_BM8ZWdYAPKccsh-ic3eRECiQNlZg2uWbI0O79_PF3ZkEEM1Mba0ThH0GN4Lot5a4ccpSsbVifUY1PGkUfbZvC6ONbUDIxeLO6fKzNY-79Sw54yIAokjih3Akw6v_MEJ3lcdGg3q1IPMAlCQoHJNSsVgm3BepBNvmwehf9F99sh-V07mG3Su0AlxhmxvH5P-Vqy10UXEfFQ98bKL0B6zmydqf6_KKytwFozmkS3MHnTevL7ZEE2EzjepgsLeDgQxwqMYn-EoXtJeaTUxsBHU5zQ6l8kWKutbWeneuKZmkYX8-MSx_rO_v89T2UdNhc6aIUUjb-vrIxqSKpFzhMLhaU8fmkR0DHyI3AGx9xHbF-2s7qfb6DoT05XrgP23ONv7LKa8xmmx8N2mDUkyZ95xu5v_kTpUBBCu-xoGdyic5AU0DPEp7lEain77vEvkaHjSWbeG2aUjd2APuF8ea95TgVwgp_HBO6WLyMr5TPXDG3Fob7KTRORU_Ft_69nd_uBBP2wqdLreUktN8_Edb8rIa1eQRlKJ9hcOe18SGthzINyUuwnK5iuyWOtoM04bE_R83bR_PhcsCZVf0tPTcfVNakCvsT0jt4q3wrbhKlVfeGBZGY5wdc5EvFm7YVszOmxjrQcuCEBeW5upks3CRmAKhhjYHACkJ-OgFsyiqrj0nk6jHma-A5XPHJNCC7_WY0edToJKvzq0AMh71YFAxky-X8b5ASvXJDa_zIVpBJanFAJd_tjpFeuH7uJ6cKZ5d6ml-ki35rCf_aDN8u87Xb5LJSJ924s3r6IDPWDwqI0J9wv4hPcyRzirZNMvSaGH0DsUXJN4ktNCoOK0Vu9nZWcRjzv23deflCgz_pjozVqssh2wGKe2gChQB0og8jel9rsBzoyiX4ekUZQoCf7DibHjGUn0rhyy6PMaYCAeQLmeFcSufFOteDKR2i5FFzkP3jLrKWsoZX9Qo1feCcYz6pFZiR1uchXMYWGB_3mVwI2yfa6R1vusVikaxVbFUz4DY3eIzmn2xqbahM&amp;c=dab544c&amp;v=4';" target="_blank" data-rec-en-did="zVPgJRpPEDIfRctvFIUBnQ" data-adv-id="245248" rel="nofollow noopener">
+    <span class="ob-unit ob-rec-image-container" data-type="Image">
+  <div class="ob-image-ratio"></div>
+                      <img class="ob-rec-image ob-show" loading="lazy" aria-hidden="true" src="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/eyJpdSI6ImUyNWFiOTc5NzMyZmRkZGU1ZmI3ZWFjZGM0OTFmNDcxYWEzYzk.webp" onload="this.className+=' ob-show'" alt="5 Subnetting Benefits" title="5 Subnetting Benefits" onerror="OBR.extern.imageError(this)">
+                                                    </span>
+    <section class="ob-sub-units">
+        <span class="ob-unit ob-rec-text" data-type="Title" title="5 Subnetting Benefits">5 Subnetting Benefits</span>
+            <span class="ob-unit ob-rec-source" data-type="Source">Network Computing | Sponsored</span>
+    
+
+    </section>
+    </a>
+   </div>
+<div class="ob-dynamic-rec-container ob-recIdx-8 ob-p" data-pos="8">
+    <a class="ob-dynamic-rec-link " onclick="" href="https://www.networkcomputing.com/network-security/ip-addresses-subnet-masks-and-default-gateways?testAd=drivenwc&amp;welcad=off&amp;_mc=otb&amp;utm_source=outbrain&amp;utm_medium=cpc&amp;utm_campaign=ncnokia&amp;obOrigUrl=true" onmousedown="this.href='https://paid.outbrain.com/network/redir?p=rY5J9vUMp9_7KMdVTjYP36yyLfWkVFOE9Oy4tfhUwgxn9ANLSfn5l_Wob9IZhhMQBd_zV8rtxIGyHkEE3keAi9p_Bne8rmYNAriVoUuRX0X7BMiuELrHZBdYbMvKkfe19BhwxCn9uqkhKfJ4LTz8hoZS5rttUDyc16L2KNxX5fUS_kIQDKP6OTFrfOqy6hO3nkIVKuA2TXhBD3aKM6STDQTAMusZvLtuKNfA_XCAy2NZmkAPxH8VKEVSWOGS2Z55NaKk-InFZWjHqD-RnTaS0g_1geKa8J1uY-VksR3vKw0Y5Y5Dp23O0f99h1_VgdFiiZ12cHDfM2xPiUzD6AeyWZnLnmeFl7AxvEUOUkHtwUCCsfYTa_tcec0ASsshcFo6xxCxxmx-O2qKDERGxaU3arCNGCb57lX-236a8qYDkFa0DEUJu2b1a0qIth_6PIypIRgLA4mkz232e0E0IT5uNBpnmMGaMri5e35RzEevL_xNBB8tIuK2ZJim43z_o4_uDY1siusxAvFDEZaN8JUbosfI6cYQ-QBVrdur2hDmrsoaI5oV3flSnTnVujMlbY7F0O_rpWEI-lORqoqEi9f_9KaYIxAqJndSRR-hgpIrBjvDkdyarEGwIn0sVAmcB5bTrT8OfAfBbdv-X0z7bagi_46LfwwjXxcKn9FAOSTfm9zMwlGbyPg3-9wIa1lBkB1uH-DxzEZSvZwejUfJfxvfkPpvppfEpvCCeGS4l4L5umObYBnIvPvGR5x1LcpfnmbnM-Gk4Wb8BT-EfYQkq-wX3K1ebit1F1rYuAmdkJAGYB-cUVjci-t8F4PXWruE_MMiIYYMh2IkbxiZbTQzTXYwDEOlL7JnkuttIVuVJpe9CyGFLybc5R7rcmRan2I2IQWPXvqifuoUOkRJhMzx6g2o2YUoAgbXIH6SXtm4ggltVaw-MA3RkZx6jYWOZ2tJQn3zg1H886nvW48CGEqixdcJamuIK8vdVxWvVbSTHZKrudrqBi00dxOieA4uGicLwbMCWthDIP0Z3iulLhjS9cjoR3fEMXZaYecb9S5-pW0Wo_zQIKyu_lQH2YVOaB9G5KqITj_ZtlJ1LlzTa479npv4io0Sn-4q1QxJ5HLKyiprPlg&amp;c=2c52f096&amp;v=4';" target="_blank" data-rec-en-did="0oQ7UiuwNjf9RePIJgz6Lw" data-adv-id="245248" rel="nofollow noopener">
+    <span class="ob-unit ob-rec-image-container" data-type="Image">
+  <div class="ob-image-ratio"></div>
+                      <img class="ob-rec-image ob-show" loading="lazy" aria-hidden="true" src="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/eyJpdSI6IjAwYzEyYjliMTkzOGRlZTljODNkOGVmMzg0ZjQzODdhNWExMDB.webp" onload="this.className+=' ob-show'" alt="IP Addresses, Subnet Masks, and Default Gateways" title="IP Addresses, Subnet Masks, and Default Gateways" onerror="OBR.extern.imageError(this)">
+                                                    </span>
+    <section class="ob-sub-units">
+        <span class="ob-unit ob-rec-text" data-type="Title" title="IP Addresses, Subnet Masks, and Default Gateways">IP Addresses, Subnet Masks, and Default Gateways</span>
+            <span class="ob-unit ob-rec-source" data-type="Source">Network Computing | Sponsored</span>
+    
+
+    </section>
+    </a>
+   </div>
+</div>        <div class="ob-widget-footer">
+<div class="ob-pixels">
+<iframe style="display: none; width: 1px; height: 1px;" src="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/obPixelFrame.html" sandbox="allow-scripts allow-same-origin"></iframe><iframe style="display: none; width: 1px; height: 1px;" src="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/obPixelFrame_002.html" sandbox="allow-scripts allow-same-origin"></iframe><iframe style="display: none; width: 1px; height: 1px;" src="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/obPixelFrame_003.html" sandbox="allow-scripts allow-same-origin"></iframe><iframe style="display: none; width: 1px; height: 1px;" src="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/obPixelFrame_004.html" sandbox="allow-scripts allow-same-origin"></iframe><iframe style="display: none; width: 1px; height: 1px;" src="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/obPixelFrame_005.html" sandbox="allow-scripts allow-same-origin"></iframe><iframe style="display: none; width: 1px; height: 1px;" src="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/obPixelFrame_006.html" sandbox="allow-scripts allow-same-origin"></iframe></div>
+</div>
+    </div></div></div><script>sas.cmd.push(function() {sas.render("sas_110354");});window._stq = window._stq || [];window._stq.push( ['extra',{x_wordads_smart: 'render_sas_110354',},] );</script>	</div><!-- .entry-content -->
+
+	<div class="entry-footer">
+		<ul class="post-tags light-text"><li>Tagged</li><li><a href="https://justindomke.wordpress.com/tag/calculus/" rel="tag">calculus</a></li><li><a href="https://justindomke.wordpress.com/tag/machine-learning/" rel="tag">machine learning</a></li><li><a href="https://justindomke.wordpress.com/tag/math/" rel="tag">math</a></li><li><a href="https://justindomke.wordpress.com/tag/scheme/" rel="tag">scheme</a></li></ul><!-- .post-tags -->	</div><!-- .entry-footer -->
+
+	<div class="entry-author-wrapper">
+				<div class="site-posted-on">
+			<strong>Published</strong>
+			<time class="entry-date published" datetime="2009-03-24T16:18:12+00:00">March 24, 2009</time><time class="updated" datetime="2009-03-24T21:35:22+00:00">March 24, 2009</time>		</div><!-- .site-posted-on -->
+	</div>
+</article><!-- #post-## -->
+
+			
+	<nav class="navigation post-navigation" aria-label="Posts">
+		<h2 class="screen-reader-text">Post navigation</h2>
+		<div class="nav-links"><div class="nav-previous"><a href="https://justindomke.wordpress.com/2009/02/28/prediction-markets-monte-carlo-and-loss-functions/" rel="prev"><span class="meta-nav screen-reader-text">Previous Post</span> Prediction markets, monte carlo, and loss&nbsp;functions</a></div><div class="nav-next"><a href="https://justindomke.wordpress.com/2009/05/22/numbers-in-bar-graphs/" rel="next"><span class="meta-nav screen-reader-text">Next Post</span> Numbers in bar&nbsp;graphs</a></div></div>
+	</nav>
+			
+<div id="comments" class="comments-area">
+
+	
+			<h2 class="comments-title">
+			16 thoughts on “<span>A simple explanation of reverse-mode automatic&nbsp;differentiation</span>”		</h2><!-- .comments-title -->
+
+		
+		<ol class="comment-list">
+					<li id="comment-3344" class="comment even thread-even depth-1 highlander-comment" data-adtags-visited="true">
+			<article id="div-comment-3344" class="comment-body">
+				<footer class="comment-meta">
+					<div class="comment-author vcard">
+						<img alt="" src="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/5fbebffae755f72630f711af618a651a.png" class="avatar avatar-48 grav-hashed grav-hijack" id="grav-5fbebffae755f72630f711af618a651a-0" width="48" height="48">						<b class="fn">Song Chen</b> <span class="says">says:</span>					</div><!-- .comment-author -->
+
+					<div class="comment-metadata">
+						<a href="https://justindomke.wordpress.com/2009/03/24/a-simple-explanation-of-reverse-mode-automatic-differentiation/#comment-3344"><time datetime="2014-02-05T15:03:00+00:00">February 5, 2014 at 3:03 pm</time></a>					</div><!-- .comment-metadata -->
+
+									</footer><!-- .comment-meta -->
+
+				<div class="comment-content">
+					<p>Hi , I have a question that<br>
+how to compute the dXn/dXn-1<br>
+due to the formula above , I will get<br>
+ dXn/dXn-1=partial(Xn)/partial(Xn-1)<br>
+is this coorect??</p>
+				</div><!-- .comment-content -->
+
+							</article><!-- .comment-body -->
+		</li><!-- #comment-## -->
+		<li id="comment-3346" class="comment byuser comment-author-justindomke bypostauthor odd alt thread-odd thread-alt depth-1 highlander-comment" data-adtags-visited="true">
+			<article id="div-comment-3346" class="comment-body">
+				<footer class="comment-meta">
+					<div class="comment-author vcard">
+						<img alt="" src="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/a72c5df905ac39536ce6418456a227fb.png" class="avatar avatar-48 grav-hashed grav-hijack" id="grav-a72c5df905ac39536ce6418456a227fb-0" width="48" height="48">						<b class="fn">justindomke</b> <span class="says">says:</span>					</div><!-- .comment-author -->
+
+					<div class="comment-metadata">
+						<a href="https://justindomke.wordpress.com/2009/03/24/a-simple-explanation-of-reverse-mode-automatic-differentiation/#comment-3346"><time datetime="2014-02-06T02:23:51+00:00">February 6, 2014 at 2:23 am</time></a>					</div><!-- .comment-metadata -->
+
+									</footer><!-- .comment-meta -->
+
+				<div class="comment-content">
+					<p>If I understand you, you are asking if the full derivative of 
+X_n with respect to X_{n-1} is equal to the partial derivative.  I 
+believe the answer for that is yes.  The reason is t hat X_{n-1} doesn’t
+ have the chance to influence any other variables before X_n is 
+computed.  It wouldn’t be true in general, however, for say the 
+derivative of X_n with respect to X_{n-2}, since the full derivative 
+would take into account the influence of X_{n-2} on X_{n-1} but the 
+partial derivative would not.</p>
+				</div><!-- .comment-content -->
+
+							</article><!-- .comment-body -->
+		</li><!-- #comment-## -->
+		<li id="comment-3347" class="comment even thread-even depth-1 highlander-comment" data-adtags-visited="true">
+			<article id="div-comment-3347" class="comment-body">
+				<footer class="comment-meta">
+					<div class="comment-author vcard">
+						<img alt="" src="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/5fbebffae755f72630f711af618a651a.png" class="avatar avatar-48 grav-hashed grav-hijack" id="grav-5fbebffae755f72630f711af618a651a-1" width="48" height="48">						<b class="fn">Song Chen</b> <span class="says">says:</span>					</div><!-- .comment-author -->
+
+					<div class="comment-metadata">
+						<a href="https://justindomke.wordpress.com/2009/03/24/a-simple-explanation-of-reverse-mode-automatic-differentiation/#comment-3347"><time datetime="2014-02-06T02:37:56+00:00">February 6, 2014 at 2:37 am</time></a>					</div><!-- .comment-metadata -->
+
+									</footer><!-- .comment-meta -->
+
+				<div class="comment-content">
+					<p>So, I have a test case like below:<br>
+let<br>
+t1=2 ; ( or some arbitrary value )<br>
+t2=t1^2 ;<br>
+t3=t1^2+t2^2 ;</p>
+<p>then , using the reverse AD mode ,<br>
+dt3/dt2 should be partial(t3)/partial(t2) , right ?<br>
+so that would be 2*t2.</p>
+<p>Howeever, if we just use some mathematical substitution, since t2=t1^2, we can rewrite the t3 like below:</p>
+<p>t3=t2+t2^2</p>
+<p>so obviously the total derivative of t3 respect to t2 would be</p>
+<p>dt3/dt2=1+2*t2</p>
+				</div><!-- .comment-content -->
+
+							</article><!-- .comment-body -->
+		</li><!-- #comment-## -->
+		<li id="comment-3348" class="comment byuser comment-author-justindomke bypostauthor odd alt thread-odd thread-alt depth-1 highlander-comment" data-adtags-visited="true">
+			<article id="div-comment-3348" class="comment-body">
+				<footer class="comment-meta">
+					<div class="comment-author vcard">
+						<img alt="" src="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/a72c5df905ac39536ce6418456a227fb.png" class="avatar avatar-48 grav-hashed grav-hijack" id="grav-a72c5df905ac39536ce6418456a227fb-1" width="48" height="48">						<b class="fn">justindomke</b> <span class="says">says:</span>					</div><!-- .comment-author -->
+
+					<div class="comment-metadata">
+						<a href="https://justindomke.wordpress.com/2009/03/24/a-simple-explanation-of-reverse-mode-automatic-differentiation/#comment-3348"><time datetime="2014-02-06T02:47:21+00:00">February 6, 2014 at 2:47 am</time></a>					</div><!-- .comment-metadata -->
+
+									</footer><!-- .comment-meta -->
+
+				<div class="comment-content">
+					<p>The confusion here is that we have to remember each variable is a
+ function of the previous variables.  By substituting as you have done 
+above, you have implicitly used two different function structures.  You 
+should really write something like this:</p>
+<p>t1 = f1();<br>
+t2 = f2(t1)<br>
+t3 = f3(t1,t2)</p>
+<p>for appropriately defined f1, f2, and f3.  Then, calculating 
+derivatives will make more sense.  The second substitution you have made
+ above essentially re-writes things as</p>
+<p>t2 = f2()<br>
+t1 = f1(t2)<br>
+t3 = f3(t1,t2)</p>
+<p>which is a totally different animal!</p>
+				</div><!-- .comment-content -->
+
+							</article><!-- .comment-body -->
+		</li><!-- #comment-## -->
+		<p class="inline-ad-slot" id="inline-ad-1" style="float:left;height:0px;margin:0 auto;overflow:hidden;width:740px;" data-adtags-width="740" data-adtags-visited="true"></p><li id="comment-3349" class="comment even thread-even depth-1 highlander-comment" data-adtags-visited="true">
+			<article id="div-comment-3349" class="comment-body">
+				<footer class="comment-meta">
+					<div class="comment-author vcard">
+						<img alt="" src="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/5fbebffae755f72630f711af618a651a.png" class="avatar avatar-48 grav-hashed grav-hijack" id="grav-5fbebffae755f72630f711af618a651a-2" width="48" height="48">						<b class="fn">Song Chen</b> <span class="says">says:</span>					</div><!-- .comment-author -->
+
+					<div class="comment-metadata">
+						<a href="https://justindomke.wordpress.com/2009/03/24/a-simple-explanation-of-reverse-mode-automatic-differentiation/#comment-3349"><time datetime="2014-02-06T02:53:07+00:00">February 6, 2014 at 2:53 am</time></a>					</div><!-- .comment-metadata -->
+
+									</footer><!-- .comment-meta -->
+
+				<div class="comment-content">
+					<p>Right ! That is clear to me now.</p>
+<p>Many thanks , Dr. Domke</p>
+<p>PS: I found this paper is a good material, recommend to you</p>
+<p><a href="http://mdolab.engin.umich.edu/sites/default/files/Martins-Hwang-2013-AIAAJ-derivatives.pdf" target="_blank" rel="noopener noreferrer nofollow">Click to access Martins-Hwang-2013-AIAAJ-derivatives.pdf</a></p>
+				</div><!-- .comment-content -->
+
+							</article><!-- .comment-body -->
+		</li><!-- #comment-## -->
+		<li id="comment-3350" class="comment odd alt thread-odd thread-alt depth-1 highlander-comment" data-adtags-visited="true">
+			<article id="div-comment-3350" class="comment-body">
+				<footer class="comment-meta">
+					<div class="comment-author vcard">
+						<img alt="" src="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/5fbebffae755f72630f711af618a651a.png" class="avatar avatar-48 grav-hashed grav-hijack" id="grav-5fbebffae755f72630f711af618a651a-3" width="48" height="48">						<b class="fn">Song Chen</b> <span class="says">says:</span>					</div><!-- .comment-author -->
+
+					<div class="comment-metadata">
+						<a href="https://justindomke.wordpress.com/2009/03/24/a-simple-explanation-of-reverse-mode-automatic-differentiation/#comment-3350"><time datetime="2014-02-06T02:56:22+00:00">February 6, 2014 at 2:56 am</time></a>					</div><!-- .comment-metadata -->
+
+									</footer><!-- .comment-meta -->
+
+				<div class="comment-content">
+					<p>Oh , I have one more question.</p>
+<p>From mathematical point of view, let’s say a function like this</p>
+<p>f=F(x)</p>
+<p>so the partial and total derivative of x respect to f<br>
+dx/df and partial(x)/partial(f)<br>
+do they have some sort of real meaning?<br>
+or they just equal to zero.</p>
+<p>Sometimes we can just write an inverse function of f=F(x) as x=g(f), 
+however there’s no guarantee that this inverse function uniquely exist.</p>
+				</div><!-- .comment-content -->
+
+							</article><!-- .comment-body -->
+		</li><!-- #comment-## -->
+		<li id="comment-3351" class="comment byuser comment-author-justindomke bypostauthor even thread-even depth-1 highlander-comment" data-adtags-visited="true">
+			<article id="div-comment-3351" class="comment-body">
+				<footer class="comment-meta">
+					<div class="comment-author vcard">
+						<img alt="" src="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/a72c5df905ac39536ce6418456a227fb.png" class="avatar avatar-48 grav-hashed grav-hijack" id="grav-a72c5df905ac39536ce6418456a227fb-2" width="48" height="48">						<b class="fn">justindomke</b> <span class="says">says:</span>					</div><!-- .comment-author -->
+
+					<div class="comment-metadata">
+						<a href="https://justindomke.wordpress.com/2009/03/24/a-simple-explanation-of-reverse-mode-automatic-differentiation/#comment-3351"><time datetime="2014-02-06T02:59:57+00:00">February 6, 2014 at 2:59 am</time></a>					</div><!-- .comment-metadata -->
+
+									</footer><!-- .comment-meta -->
+
+				<div class="comment-content">
+					<p>I guess, technically, you can’t differentiate a variable, you 
+can only differentiate a function.  Writing dy/dx is a bit of a 
+shorthand for differentiating the function f(x) that produces y.  So, 
+technically the things you wrote have no meaning in general.  You could 
+(if F is invertible) define</p>
+<p>x = G(f), where G(x)=F^-1(x)</p>
+<p>then it would make sense to talk about dx/df = dG/df.</p>
+				</div><!-- .comment-content -->
+
+							</article><!-- .comment-body -->
+		</li><!-- #comment-## -->
+		<li id="comment-3352" class="comment odd alt thread-odd thread-alt depth-1 highlander-comment" data-adtags-visited="true">
+			<article id="div-comment-3352" class="comment-body">
+				<footer class="comment-meta">
+					<div class="comment-author vcard">
+						<img alt="" src="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/5fbebffae755f72630f711af618a651a.png" class="avatar avatar-48 grav-hashed grav-hijack" id="grav-5fbebffae755f72630f711af618a651a-4" width="48" height="48">						<b class="fn">Song Chen</b> <span class="says">says:</span>					</div><!-- .comment-author -->
+
+					<div class="comment-metadata">
+						<a href="https://justindomke.wordpress.com/2009/03/24/a-simple-explanation-of-reverse-mode-automatic-differentiation/#comment-3352"><time datetime="2014-02-06T03:02:18+00:00">February 6, 2014 at 3:02 am</time></a>					</div><!-- .comment-metadata -->
+
+									</footer><!-- .comment-meta -->
+
+				<div class="comment-content">
+					<p>Right, I see.</p>
+<p>Thank you ! 🙂</p>
+				</div><!-- .comment-content -->
+
+							</article><!-- .comment-body -->
+		</li><!-- #comment-## -->
+		<p class="inline-ad-slot" id="inline-ad-2" style="float:left;height:0px;margin:0 auto;overflow:hidden;width:740px;" data-adtags-width="740" data-adtags-visited="true"></p><li id="comment-4518" class="comment even thread-even depth-1 highlander-comment" data-adtags-visited="true">
+			<article id="div-comment-4518" class="comment-body">
+				<footer class="comment-meta">
+					<div class="comment-author vcard">
+						<img alt="" src="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/d9b0765b506eb3110e428282b109e75e.jpeg" class="avatar avatar-48 grav-hashed grav-hijack" id="grav-d9b0765b506eb3110e428282b109e75e-0" width="48" height="48">						<b class="fn"><a href="http://www.foelsche.com/" class="url" rel="ugc external nofollow">Peter Foelsche</a></b> <span class="says">says:</span>					</div><!-- .comment-author -->
+
+					<div class="comment-metadata">
+						<a href="https://justindomke.wordpress.com/2009/03/24/a-simple-explanation-of-reverse-mode-automatic-differentiation/#comment-4518"><time datetime="2015-10-18T03:33:57+00:00">October 18, 2015 at 3:33 am</time></a>					</div><!-- .comment-metadata -->
+
+									</footer><!-- .comment-meta -->
+
+				<div class="comment-content">
+					<p>I’ve just implemented reverse differentiation in C++ using 
+operator overloading without a dynamic stack being created and 
+interpreted.</p>
+				</div><!-- .comment-content -->
+
+							</article><!-- .comment-body -->
+		</li><!-- #comment-## -->
+		<li id="comment-4705" class="comment byuser comment-author-joemoorhouse odd alt thread-odd thread-alt depth-1 highlander-comment" data-adtags-visited="true">
+			<article id="div-comment-4705" class="comment-body">
+				<footer class="comment-meta">
+					<div class="comment-author vcard">
+						<img alt="" src="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/7c8ae7fbc374f0948597beb913e9bf7b.png" class="avatar avatar-48 grav-hashed grav-hijack" id="grav-7c8ae7fbc374f0948597beb913e9bf7b-0" width="48" height="48">						<b class="fn"><a href="http://joemoorhouse.wordpress.com/" class="url" rel="ugc external nofollow">joemoorhouse</a></b> <span class="says">says:</span>					</div><!-- .comment-author -->
+
+					<div class="comment-metadata">
+						<a href="https://justindomke.wordpress.com/2009/03/24/a-simple-explanation-of-reverse-mode-automatic-differentiation/#comment-4705"><time datetime="2016-04-21T18:28:26+00:00">April 21, 2016 at 6:28 pm</time></a>					</div><!-- .comment-metadata -->
+
+									</footer><!-- .comment-meta -->
+
+				<div class="comment-content">
+					<p>One of the clearest articles on the topic I have read – thanks for posting!</p>
+				</div><!-- .comment-content -->
+
+							</article><!-- .comment-body -->
+		</li><!-- #comment-## -->
+		<li id="comment-4850" class="pingback even thread-even depth-1 highlander-comment">
+			<div class="comment-body">
+				Pingback: <a href="https://pseudoprofound.wordpress.com/2016/08/03/differentiable-programming/" class="url" rel="ugc external nofollow">Differentiable Programming – Pseudo-profound samples</a> 			</div>
+		</li><!-- #comment-## -->
+		<li id="comment-7130" class="comment byuser comment-author-ehku odd alt thread-odd thread-alt depth-1 highlander-comment" data-adtags-visited="true">
+			<article id="div-comment-7130" class="comment-body">
+				<footer class="comment-meta">
+					<div class="comment-author vcard">
+						<img alt="" src="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/674984d7b472407ccdbfd5bc8331b032.png" class="avatar avatar-48 grav-hashed grav-hijack" id="grav-674984d7b472407ccdbfd5bc8331b032-0" width="48" height="48">						<b class="fn"><a href="http://lekhue.wordpress.com/" class="url" rel="ugc external nofollow">ehku</a></b> <span class="says">says:</span>					</div><!-- .comment-author -->
+
+					<div class="comment-metadata">
+						<a href="https://justindomke.wordpress.com/2009/03/24/a-simple-explanation-of-reverse-mode-automatic-differentiation/#comment-7130"><time datetime="2018-09-22T20:30:14+00:00">September 22, 2018 at 8:30 pm</time></a>					</div><!-- .comment-metadata -->
+
+									</footer><!-- .comment-meta -->
+
+				<div class="comment-content">
+					<p>Thank you for the useful post, prof. Domke!</p>
+<p>One question please: I don’t see how you came up with that chain 
+rule. For me there seems to be a notational issue: on the left-hand 
+side, the $d$ (for total derivative) and the $\partial$ are switched. 
+Shouldn’t it read:<br>
+$\frac{d x_N}{d x_i} = \sum_{j: i\in\pi(j} \frac{\partial x_N}{\partial x_j} \frac{d x_j}{d x_i}$?</p>
+				</div><!-- .comment-content -->
+
+							</article><!-- .comment-body -->
+		</li><!-- #comment-## -->
+		<li id="comment-7134" class="comment byuser comment-author-justindomke bypostauthor even thread-even depth-1 highlander-comment" data-adtags-visited="true">
+			<article id="div-comment-7134" class="comment-body">
+				<footer class="comment-meta">
+					<div class="comment-author vcard">
+						<img alt="" src="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/a72c5df905ac39536ce6418456a227fb.png" class="avatar avatar-48 grav-hashed grav-hijack" id="grav-a72c5df905ac39536ce6418456a227fb-3" width="48" height="48">						<b class="fn">justindomke</b> <span class="says">says:</span>					</div><!-- .comment-author -->
+
+					<div class="comment-metadata">
+						<a href="https://justindomke.wordpress.com/2009/03/24/a-simple-explanation-of-reverse-mode-automatic-differentiation/#comment-7134"><time datetime="2018-09-24T12:20:34+00:00">September 24, 2018 at 12:20 pm</time></a>					</div><!-- .comment-metadata -->
+
+									</footer><!-- .comment-meta -->
+
+				<div class="comment-content">
+					<p>I think that looks good to me as is… (though I’m happy to be corrected!) The semantics for that equation are:</p>
+<p>(i’s total influence on the output) = (sum over all descendants j of 
+ i) (j’s total influence on the output) (i’s direct influence on j)</p>
+<p>I’m using partials to denote “direct” influence and totals to represent total influence.</p>
+				</div><!-- .comment-content -->
+
+							</article><!-- .comment-body -->
+		</li><!-- #comment-## -->
+		<li id="comment-24390" class="pingback odd alt thread-odd thread-alt depth-1 highlander-comment">
+			<div class="comment-body">
+				Pingback: <a href="https://fixeme.com/what-is-tape-based-autograd-in-pytorch/" class="url" rel="ugc external nofollow">What is tape-based autograd in Pytorch?</a> 			</div>
+		</li><!-- #comment-## -->
+		<li id="comment-25224" class="pingback even thread-even depth-1 highlander-comment">
+			<div class="comment-body">
+				Pingback: <a href="https://www.evsforafrica.com/meta-spins-off-pytorch-foundation-to-make-ai-framework-vendor-neutral/" class="url" rel="ugc external nofollow">Meta spins off PyTorch Foundation to make AI framework vendor neutral | Electronic Vehicles For Africa</a> 			</div>
+		</li><!-- #comment-## -->
+		<li id="comment-25556" class="pingback odd alt thread-odd thread-alt depth-1 highlander-comment">
+			<div class="comment-body">
+				Pingback: <a href="https://tech.bacpl.org/meta-se-separe-de-pytorch-foundation-pour-rendre-le-framework-dia-independant-des-fournisseurs/" class="url" rel="ugc external nofollow">Meta se sépare de PyTorch Foundation pour rendre le framework d'IA indépendant des fournisseurs | Nouvelles techniques</a> 			</div>
+		</li><!-- #comment-## -->
+		</ol><!-- .comment-list -->
+
+		
+	
+	
+		<div id="respond" class="comment-respond js">
+		<h3 id="reply-title" class="comment-reply-title">Leave a Reply</h3><form action="https://justindomke.wordpress.com/wp-comments-post.php" method="post" id="commentform" class="comment-form" novalidate=""><input type="hidden" id="highlander_comment_nonce" name="highlander_comment_nonce" value="84e08481e4"><input type="hidden" name="_wp_http_referer" value="/2009/03/24/a-simple-explanation-of-reverse-mode-automatic-differentiation/">
+<input type="hidden" name="hc_post_as" id="hc_post_as" value="guest">
+
+<div class="comment-form-field comment-textarea">
+	
+	<div id="comment-form-comment"><textarea id="comment" name="comment" title="Enter your comment here..." placeholder="Enter your comment here..." style="overflow: hidden; overflow-wrap: break-word; resize: none; height: 38px;"></textarea></div>
+</div>
+
+<div id="comment-form-identity" style="display: none;">
+	<div id="comment-form-nascar">
+		<p>Fill in your details below or click an icon to log in:</p>
+		<ul>
+			<li class="selected" style="display:none;">
+				<a href="#comment-form-guest" id="postas-guest" class="nascar-signin-link" title="Login via Guest">
+									</a>
+			</li>
+			<li>
+				<a href="#comment-form-load-service:WordPress.com" id="postas-wordpress" class="nascar-signin-link" title="Login via WordPress.com">
+					<svg xmlns="http://www.w3.org/2000/svg" role="presentation" viewBox="0 0 24 24"><rect x="0" fill="none" width="24" height="24"></rect><g><path fill="#0087be" d="M12.158 12.786l-2.698 7.84c.806.236 1.657.365 2.54.365 1.047 0 2.05-.18 2.986-.51-.024-.037-.046-.078-.065-.123l-2.762-7.57zM3.008 12c0 3.56 2.07 6.634 5.068 8.092L3.788 8.342c-.5 1.117-.78 2.354-.78 3.658zm15.06-.454c0-1.112-.398-1.88-.74-2.48-.456-.74-.883-1.368-.883-2.11 0-.825.627-1.595 1.51-1.595.04 0 .078.006.116.008-1.598-1.464-3.73-2.36-6.07-2.36-3.14 0-5.904 1.613-7.512 4.053.21.008.41.012.58.012.94 0 2.395-.114 2.395-.114.484-.028.54.684.057.74 0 0-.487.058-1.03.086l3.275 9.74 1.968-5.902-1.4-3.838c-.485-.028-.944-.085-.944-.085-.486-.03-.43-.77.056-.742 0 0 1.484.114 2.368.114.94 0 2.397-.114 2.397-.114.486-.028.543.684.058.74 0 0-.488.058-1.03.086l3.25 9.665.897-2.997c.456-1.17.684-2.137.684-2.907zm1.82-3.86c.04.286.06.593.06.924 0 .912-.17 1.938-.683 3.22l-2.746 7.94c2.672-1.558 4.47-4.454 4.47-7.77 0-1.564-.4-3.033-1.1-4.314zM12 22C6.486 22 2 17.514 2 12S6.486 2 12 2s10 4.486 10 10-4.486 10-10 10z"></path></g></svg>				</a>
+			</li>
+			<li>
+				<a href="#comment-form-load-service:Twitter" id="postas-twitter" class="nascar-signin-link" title="Login via Twitter">
+					<svg xmlns="http://www.w3.org/2000/svg" role="presentation" viewBox="0 0 24 24"><rect x="0" fill="none" width="24" height="24"></rect><g><path fill="#1DA1F2" d="M22.23 5.924c-.736.326-1.527.547-2.357.646.847-.508 1.498-1.312 1.804-2.27-.793.47-1.67.812-2.606.996C18.325 4.498 17.258 4 16.078 4c-2.266 0-4.103 1.837-4.103 4.103 0 .322.036.635.106.935-3.41-.17-6.433-1.804-8.457-4.287-.353.607-.556 1.312-.556 2.064 0 1.424.724 2.68 1.825 3.415-.673-.022-1.305-.207-1.86-.514v.052c0 1.988 1.415 3.647 3.293 4.023-.344.095-.707.145-1.08.145-.265 0-.522-.026-.773-.074.522 1.63 2.038 2.817 3.833 2.85-1.404 1.1-3.174 1.757-5.096 1.757-.332 0-.66-.02-.98-.057 1.816 1.164 3.973 1.843 6.29 1.843 7.547 0 11.675-6.252 11.675-11.675 0-.178-.004-.355-.012-.53.802-.578 1.497-1.3 2.047-2.124z"></path></g></svg>				</a>
+			</li>
+			<li>
+				<a href="#comment-form-load-service:Facebook" id="postas-facebook" class="nascar-signin-link" title="Login via Facebook">
+					<svg xmlns="http://www.w3.org/2000/svg" role="presentation" viewBox="0 0 24 24"><rect x="0" fill="none" width="24" height="24"></rect><g><path fill="#3B5998" d="M20.007 3H3.993C3.445 3 3 3.445 3 3.993v16.013c0 .55.445.994.993.994h8.62v-6.97H10.27V11.31h2.346V9.31c0-2.325 1.42-3.59 3.494-3.59.993 0 1.847.073 2.096.106v2.43h-1.438c-1.128 0-1.346.537-1.346 1.324v1.734h2.69l-.35 2.717h-2.34V21h4.587c.548 0 .993-.445.993-.993V3.993c0-.548-.445-.993-.993-.993z"></path></g></svg>				</a>
+			</li>
+		</ul>
+	</div>
+
+	<div id="comment-form-guest" class="comment-form-service selected">
+		<div class="comment-form-padder">
+			<div class="comment-form-avatar">
+<a href="https://gravatar.com/site/signup/" target="_blank">				<img src="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/ad516503a11cd5ca435acc9bb6523536.png" alt="Gravatar" class="no-grav grav-hashed grav-hijack" id="grav-ad516503a11cd5ca435acc9bb6523536-0" width="25">
+</a>			</div>
+
+				<div class="comment-form-fields">
+				<div class="comment-form-field comment-form-email">
+					<label for="email">Email <span class="nopublish">(Address never made public)</span></label>
+					<div class="comment-form-input"><input id="email" name="email" type="email"></div>
+				</div>
+				<div class="comment-form-field comment-form-author">
+					<label for="author">Name</label>
+					<div class="comment-form-input"><input id="author" name="author" type="text"></div>
+				</div>
+				<div class="comment-form-field comment-form-url">
+					<label for="url">Website</label>
+					<div class="comment-form-input"><input id="url" name="url" type="url"></div>
+				</div>
+			</div>
+			
+		</div>
+	</div>
+
+	<div id="comment-form-wordpress" class="comment-form-service">
+		<div class="comment-form-padder">
+			<div class="comment-form-avatar">
+				<img src="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/ad516503a11cd5ca435acc9bb6523536.png" alt="WordPress.com Logo" class="no-grav grav-hashed grav-hijack" id="grav-ad516503a11cd5ca435acc9bb6523536-1" width="25">
+			</div>
+
+				<div class="comment-form-fields">
+				<input type="hidden" name="wp_avatar" id="wordpress-avatar" class="comment-meta-wordpress" value="">
+				<input type="hidden" name="wp_user_id" id="wordpress-user_id" class="comment-meta-wordpress" value="">
+				<input type="hidden" name="wp_access_token" id="wordpress-access_token" class="comment-meta-wordpress" value="">
+						<p class="comment-form-posting-as pa-wordpress">
+			<strong></strong>
+			You are commenting using your WordPress.com account.			<span class="comment-form-log-out">
+				(&nbsp;<a href="javascript:HighlanderComments.doExternalLogout( 'wordpress' );">Log&nbsp;Out</a>&nbsp;/&nbsp;
+				<a href="#" onclick="javascript:HighlanderComments.switchAccount();return false;">Change</a>&nbsp;)
+			</span>
+			<span class="pa-icon"><svg xmlns="http://www.w3.org/2000/svg" role="presentation" viewBox="0 0 24 24"><rect x="0" fill="none" width="24" height="24"></rect><g><path fill="#0087be" d="M12.158 12.786l-2.698 7.84c.806.236 1.657.365 2.54.365 1.047 0 2.05-.18 2.986-.51-.024-.037-.046-.078-.065-.123l-2.762-7.57zM3.008 12c0 3.56 2.07 6.634 5.068 8.092L3.788 8.342c-.5 1.117-.78 2.354-.78 3.658zm15.06-.454c0-1.112-.398-1.88-.74-2.48-.456-.74-.883-1.368-.883-2.11 0-.825.627-1.595 1.51-1.595.04 0 .078.006.116.008-1.598-1.464-3.73-2.36-6.07-2.36-3.14 0-5.904 1.613-7.512 4.053.21.008.41.012.58.012.94 0 2.395-.114 2.395-.114.484-.028.54.684.057.74 0 0-.487.058-1.03.086l3.275 9.74 1.968-5.902-1.4-3.838c-.485-.028-.944-.085-.944-.085-.486-.03-.43-.77.056-.742 0 0 1.484.114 2.368.114.94 0 2.397-.114 2.397-.114.486-.028.543.684.058.74 0 0-.488.058-1.03.086l3.25 9.665.897-2.997c.456-1.17.684-2.137.684-2.907zm1.82-3.86c.04.286.06.593.06.924 0 .912-.17 1.938-.683 3.22l-2.746 7.94c2.672-1.558 4.47-4.454 4.47-7.77 0-1.564-.4-3.033-1.1-4.314zM12 22C6.486 22 2 17.514 2 12S6.486 2 12 2s10 4.486 10 10-4.486 10-10 10z"></path></g></svg></span>
+		</p>
+					</div>
+	
+		</div>
+	</div>
+
+	<div id="comment-form-twitter" class="comment-form-service">
+		<div class="comment-form-padder">
+			<div class="comment-form-avatar">
+				<img src="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/ad516503a11cd5ca435acc9bb6523536.png" alt="Twitter picture" class="no-grav grav-hashed grav-hijack" id="grav-ad516503a11cd5ca435acc9bb6523536-2" width="25">
+			</div>
+
+				<div class="comment-form-fields">
+				<input type="hidden" name="twitter_avatar" id="twitter-avatar" class="comment-meta-twitter" value="">
+				<input type="hidden" name="twitter_user_id" id="twitter-user_id" class="comment-meta-twitter" value="">
+				<input type="hidden" name="twitter_access_token" id="twitter-access_token" class="comment-meta-twitter" value="">
+						<p class="comment-form-posting-as pa-twitter">
+			<strong></strong>
+			You are commenting using your Twitter account.			<span class="comment-form-log-out">
+				(&nbsp;<a href="javascript:HighlanderComments.doExternalLogout( 'twitter' );">Log&nbsp;Out</a>&nbsp;/&nbsp;
+				<a href="#" onclick="javascript:HighlanderComments.switchAccount();return false;">Change</a>&nbsp;)
+			</span>
+			<span class="pa-icon"><svg xmlns="http://www.w3.org/2000/svg" role="presentation" viewBox="0 0 24 24"><rect x="0" fill="none" width="24" height="24"></rect><g><path fill="#1DA1F2" d="M22.23 5.924c-.736.326-1.527.547-2.357.646.847-.508 1.498-1.312 1.804-2.27-.793.47-1.67.812-2.606.996C18.325 4.498 17.258 4 16.078 4c-2.266 0-4.103 1.837-4.103 4.103 0 .322.036.635.106.935-3.41-.17-6.433-1.804-8.457-4.287-.353.607-.556 1.312-.556 2.064 0 1.424.724 2.68 1.825 3.415-.673-.022-1.305-.207-1.86-.514v.052c0 1.988 1.415 3.647 3.293 4.023-.344.095-.707.145-1.08.145-.265 0-.522-.026-.773-.074.522 1.63 2.038 2.817 3.833 2.85-1.404 1.1-3.174 1.757-5.096 1.757-.332 0-.66-.02-.98-.057 1.816 1.164 3.973 1.843 6.29 1.843 7.547 0 11.675-6.252 11.675-11.675 0-.178-.004-.355-.012-.53.802-.578 1.497-1.3 2.047-2.124z"></path></g></svg></span>
+		</p>
+					</div>
+	
+		</div>
+	</div>
+
+	<div id="comment-form-facebook" class="comment-form-service">
+		<div class="comment-form-padder">
+			<div class="comment-form-avatar">
+				<img src="" alt="Facebook photo" class="no-grav" width="25">
+			</div>
+
+				<div class="comment-form-fields">
+				<input type="hidden" name="fb_avatar" id="facebook-avatar" class="comment-meta-facebook" value="">
+				<input type="hidden" name="fb_user_id" id="facebook-user_id" class="comment-meta-facebook" value="">
+				<input type="hidden" name="fb_access_token" id="facebook-access_token" class="comment-meta-facebook" value="">
+						<p class="comment-form-posting-as pa-facebook">
+			<strong></strong>
+			You are commenting using your Facebook account.			<span class="comment-form-log-out">
+				(&nbsp;<a href="javascript:HighlanderComments.doExternalLogout( 'facebook' );">Log&nbsp;Out</a>&nbsp;/&nbsp;
+				<a href="#" onclick="javascript:HighlanderComments.switchAccount();return false;">Change</a>&nbsp;)
+			</span>
+			<span class="pa-icon"><svg xmlns="http://www.w3.org/2000/svg" role="presentation" viewBox="0 0 24 24"><rect x="0" fill="none" width="24" height="24"></rect><g><path fill="#3B5998" d="M20.007 3H3.993C3.445 3 3 3.445 3 3.993v16.013c0 .55.445.994.993.994h8.62v-6.97H10.27V11.31h2.346V9.31c0-2.325 1.42-3.59 3.494-3.59.993 0 1.847.073 2.096.106v2.43h-1.438c-1.128 0-1.346.537-1.346 1.324v1.734h2.69l-.35 2.717h-2.34V21h4.587c.548 0 .993-.445.993-.993V3.993c0-.548-.445-.993-.993-.993z"></path></g></svg></span>
+		</p>
+					</div>
+	
+		</div>
+	</div>
+
+
+	<div id="comment-form-load-service" class="comment-form-service">
+		<div class="comment-form-posting-as-cancel"><a href="javascript:HighlanderComments.cancelExternalWindow();">Cancel</a></div>
+		<p>Connecting to %s</p>
+	</div>
+
+</div>
+
+<script type="text/javascript">
+var highlander_expando_javascript = function () {
+
+	function hide( sel ) {
+		var el = document.querySelector( sel );
+		if ( el ) {
+			el.style.setProperty( 'display', 'none' );
+		}
+	}
+
+	function show( sel ) {
+		var el = document.querySelector( sel );
+		if ( el ) {
+			el.style.removeProperty( 'display' );
+		}
+	}
+
+	var input = document.createElement( 'input' );
+	var comment = document.querySelector( '#comment' );
+
+	if ( input && comment && 'placeholder' in input ) {
+		var label = document.querySelector( '.comment-textarea label' );
+		if ( label ) {
+			var text = label.textContent;
+			label.parentNode.removeChild( label );
+			comment.setAttribute( 'placeholder', text );
+		}
+	}
+
+	// Expando Mode: start small, then auto-resize on first click + text length
+	hide( '#comment-form-identity' );
+	hide( '#comment-form-subscribe' );
+	hide( '#commentform .form-submit' );
+
+	if ( comment ) {
+		comment.style.height = '10px';
+
+		var handler = function () {
+			comment.style.height = HighlanderComments.initialHeight + 'px';
+			show( '#comment-form-identity' );
+			show( '#comment-form-subscribe' );
+			show( '#commentform .form-submit' );
+			HighlanderComments.resizeCallback();
+
+			comment.removeEventListener( 'focus', handler );
+		};
+
+		comment.addEventListener( 'focus', handler );
+	}
+}
+
+if ( document.readyState !== 'loading' ) {
+	highlander_expando_javascript();
+} else {
+	document.addEventListener( 'DOMContentLoaded', highlander_expando_javascript );
+}
+
+</script>
+
+<div id="comment-form-subscribe" style="display: none;">
+	<p class="comment-subscription-form"><input type="checkbox" name="subscribe" id="subscribe" value="subscribe" style="width: auto;"> <label class="subscribe-label" id="subscribe-label" for="subscribe" style="display: inline;">Notify me of new comments via email.</label></p><p class="post-subscription-form"><input type="checkbox" name="subscribe_blog" id="subscribe_blog" value="subscribe" style="width: auto;"> <label class="subscribe-label" id="subscribe-blog-label" for="subscribe_blog" style="display: inline;">Notify me of new posts via email.</label></p></div>
+
+
+
+
+<p class="form-submit" style="display: none;"><input name="submit" type="submit" id="comment-submit" class="submit button" value="Post Comment"> <input type="hidden" name="comment_post_ID" value="548" id="comment_post_ID">
+<input type="hidden" name="comment_parent" id="comment_parent" value="0">
+</p><p style="display: none;"><input type="hidden" id="akismet_comment_nonce" name="akismet_comment_nonce" value="1bbdd5c9a2"></p>
+<input type="hidden" name="genseq" value="1680795863">
+<p style="display: none !important;"><label>Δ<textarea name="ak_hp_textarea" cols="45" rows="8" maxlength="100"></textarea></label><input type="hidden" id="ak_js_1" name="ak_js" value="1680795863427"><script>document.getElementById( "ak_js_1" ).setAttribute( "value", ( new Date() ).getTime() );</script></p></form>	</div><!-- #respond -->
+	<div style="clear: both"></div>
+</div><!-- #comments -->
+
+		
+		</main><!-- #main -->
+	</div><!-- #primary -->
+
+<div id="secondary" class="widget-area" role="complementary">
+	<aside id="text-7" class="widget widget_text"><h1 class="widget-title">About</h1>			<div class="textwidget"><p>I’m an academic interested in making predictions, particularly probabilistic machine learning.</p>
+<p><a href="https://justindomke.wordpress.com/feed/">RSS feed</a></p>
+<p><a href="https://twitter.com/justindomke">@justindomke</a></p>
+<p><a href="https://people.cs.umass.edu/domke">academic website</a></p>
+</div>
+		</aside>
+		<aside id="recent-posts-4" class="widget widget_recent_entries">
+		<h1 class="widget-title">Recent Posts</h1>
+		<ul>
+											<li>
+					<a href="https://justindomke.wordpress.com/2021/10/14/is-anchoring-a-reliable-cognitive-bias/">Is anchoring a reliable cognitive&nbsp;bias?</a>
+									</li>
+											<li>
+					<a href="https://justindomke.wordpress.com/2021/10/13/more-confidence-games/">More confidence games</a>
+									</li>
+											<li>
+					<a href="https://justindomke.wordpress.com/2021/10/11/confidence-games-1-2/">Confidence games</a>
+									</li>
+											<li>
+					<a href="https://justindomke.wordpress.com/2021/10/04/the-replication-game/">The replication game</a>
+									</li>
+											<li>
+					<a href="https://justindomke.wordpress.com/2021/09/28/the-human-regression-ensemble/">The human regression&nbsp;ensemble</a>
+									</li>
+											<li>
+					<a href="https://justindomke.wordpress.com/2020/08/14/calculating-variance-in-the-log-domain/">Calculating variance in the log&nbsp;domain</a>
+									</li>
+											<li>
+					<a href="https://justindomke.wordpress.com/2020/05/18/back-to-basics-approximate-bayesian-computation/">Back to Basics: Approximate Bayesian&nbsp;Computation</a>
+									</li>
+											<li>
+					<a href="https://justindomke.wordpress.com/2019/10/16/three-opinions-on-theorems/">Three opinions on&nbsp;theorems</a>
+									</li>
+											<li>
+					<a href="https://justindomke.wordpress.com/2019/10/04/exponential-families-cheatsheet/">Exponential Families Cheatsheet</a>
+									</li>
+											<li>
+					<a href="https://justindomke.wordpress.com/2018/06/12/statistics-the-rules-of-the-game/">Statistics – the rules of the&nbsp;game</a>
+									</li>
+					</ul>
+
+		</aside><aside id="blog_subscription-4" class="widget widget_blog_subscription jetpack_subscription_widget">
+			<div class="wp-block-jetpack-subscriptions__container">
+			<form action="https://subscribe.wordpress.com" method="post" accept-charset="utf-8" data-blog="4009146" data-post_access_level="everybody" id="subscribe-blog">
+				<p>Enter your email address to subscribe to this blog and receive notifications of new posts by email.</p>
+				<p id="subscribe-email">
+					<label id="subscribe-field-label" for="subscribe-field" class="screen-reader-text">
+						Email Address:					</label>
+
+					<input type="email" name="email" style="width: 95%; padding: 1px 10px" placeholder="Email Address" id="subscribe-field" required="">				</p>
+
+				<p id="subscribe-submit">
+					<input type="hidden" name="action" value="subscribe">
+					<input type="hidden" name="blog_id" value="4009146">
+					<input type="hidden" name="source" value="https://justindomke.wordpress.com/2009/03/24/a-simple-explanation-of-reverse-mode-automatic-differentiation/">
+					<input type="hidden" name="sub-type" value="widget">
+					<input type="hidden" name="redirect_fragment" value="subscribe-blog">
+					<input type="hidden" id="_wpnonce" name="_wpnonce" value="705864dbe9">					<button type="submit" class="wp-block-button__link">
+						Subscribe					</button>
+				</p>
+			</form>
+						</div>
+			
+</aside>			<div id="atatags-286348-642ee8d707dfe" data-adtags-width="289"></div>
+			
+			<script>
+				__ATA.cmd.push(function() {
+					__ATA.initDynamicSlot({
+						id: 'atatags-286348-642ee8d707dfe',
+						location: 140,
+						formFactor: '003',
+						label: {
+							text: 'Advertisements',
+						},
+						creative: {
+							reportAd: {
+								text: 'Report this ad',
+							},
+							privacySettings: {
+								text: 'Privacy',
+								onClick: function() { window.__tcfapi && window.__tcfapi( 'showUi' ); },
+							}
+						}
+					});
+				});
+			</script></div><!-- #secondary -->
+
+		</div><!-- #content -->
+
+		<footer id="colophon" class="site-footer" role="contentinfo">
+						<div class="site-info">
+				<a href="https://wordpress.com/?ref=footer_website" rel="nofollow">Create a free website or blog at WordPress.com.</a>
+				
+							</div><!-- .site-info -->
+		</footer><!-- #colophon -->
+	</div><!-- #content-wrapper -->
+</div><!-- #page -->
+
+<!--  -->
+<script src="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/gprofiles.js" id="grofiles-cards-js"></script>
+<script id="wpgroho-js-extra">
+var WPGroHo = {"my_hash":""};
+</script>
+<script crossorigin="anonymous" type="text/javascript" src="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/wpgroho.js"></script>
+
+	<script>
+		// Initialize and attach hovercards to all gravatars
+		( function() {
+			function init() {
+				if ( typeof Gravatar === 'undefined' ) {
+					return;
+				}
+
+				if ( typeof Gravatar.init !== 'function' ) {
+					return;
+				}
+
+				Gravatar.profile_cb = function ( hash, id ) {
+					WPGroHo.syncProfileData( hash, id );
+				};
+
+				Gravatar.my_hash = WPGroHo.my_hash;
+				Gravatar.init( 'body', '#wp-admin-bar-my-account' );
+			}
+
+			if ( document.readyState !== 'loading' ) {
+				init();
+			} else {
+				document.addEventListener( 'DOMContentLoaded', init );
+			}
+		} )();
+	</script>
+
+		<div style="display:none">
+	<div class="grofile-hash-map-5fbebffae755f72630f711af618a651a">
+	</div>
+	<div class="grofile-hash-map-a72c5df905ac39536ce6418456a227fb">
+	</div>
+	<div class="grofile-hash-map-d9b0765b506eb3110e428282b109e75e">
+	</div>
+	<div class="grofile-hash-map-7c8ae7fbc374f0948597beb913e9bf7b">
+	</div>
+	<div class="grofile-hash-map-674984d7b472407ccdbfd5bc8331b032">
+	</div>
+	</div>
+<script id="highlander-comments-js-extra">
+var HighlanderComments = {"loggingInText":"Logging In\u2026","submittingText":"Posting Comment\u2026","postCommentText":"Post Comment","connectingToText":"Connecting to %s","commentingAsText":"%1$s: You are commenting using your %2$s account.","logoutText":"Log Out","loginText":"Log In","connectURL":"https:\/\/justindomke.wordpress.com\/public.api\/connect\/?action=request","logoutURL":"https:\/\/justindomke.wordpress.com\/wp-login.php?action=logout&_wpnonce=8313998851","homeURL":"https:\/\/justindomke.wordpress.com\/","postID":"548","gravDefault":"identicon","enterACommentError":"Please enter a comment","enterEmailError":"Please enter your email address here","invalidEmailError":"Invalid email address","enterAuthorError":"Please enter your name here","gravatarFromEmail":"This picture will show whenever you leave a comment. Click to customize it.","logInToExternalAccount":"Log in to use details from one of these accounts.","change":"Change","changeAccount":"Change Account","comment_registration":"","userIsLoggedIn":"","isJetpack":"","text_direction":"ltr"};
+</script>
+<script crossorigin="anonymous" type="text/javascript" src="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/Untitled"></script>
+		<script type="text/javascript">
+		( function() {
+			function init() {
+				document.body.addEventListener( 'is.post-load', function() {
+					if ( typeof __ATA.insertInlineAds === 'function' ) {
+						__ATA.insertInlineAds();
+					}
+				} );
+			}
+
+			if ( document.readyState !== 'loading' ) {
+				init();
+			} else {
+				document.addEventListener( 'DOMContentLoaded', init );
+			}
+		} )();
+		</script>		<!-- CCPA [start] -->
+		<script type="text/javascript">
+			( function () {
+
+				var setupPrivacy = function() {
+
+					// Minimal Mozilla Cookie library
+					// https://developer.mozilla.org/en-US/docs/Web/API/Document/cookie/Simple_document.cookie_framework
+					var cookieLib = window.cookieLib = {getItem:function(e){return e&&decodeURIComponent(document.cookie.replace(new RegExp("(?:(?:^|.*;)\\s*"+encodeURIComponent(e).replace(/[\-\.\+\*]/g,"\\$&")+"\\s*\\=\\s*([^;]*).*$)|^.*$"),"$1"))||null},setItem:function(e,o,n,t,r,i){if(!e||/^(?:expires|max\-age|path|domain|secure)$/i.test(e))return!1;var c="";if(n)switch(n.constructor){case Number:c=n===1/0?"; expires=Fri, 31 Dec 9999 23:59:59 GMT":"; max-age="+n;break;case String:c="; expires="+n;break;case Date:c="; expires="+n.toUTCString()}return"rootDomain"!==r&&".rootDomain"!==r||(r=(".rootDomain"===r?".":"")+document.location.hostname.split(".").slice(-2).join(".")),document.cookie=encodeURIComponent(e)+"="+encodeURIComponent(o)+c+(r?"; domain="+r:"")+(t?"; path="+t:"")+(i?"; secure":""),!0}};
+
+					// Implement IAB USP API.
+					window.__uspapi = function( command, version, callback ) {
+
+						// Validate callback.
+						if ( typeof callback !== 'function' ) {
+							return;
+						}
+
+						// Validate the given command.
+						if ( command !== 'getUSPData' || version !== 1 ) {
+							callback( null, false );
+							return;
+						}
+
+						// Check for GPC. If set, override any stored cookie.
+						if ( navigator.globalPrivacyControl ) {
+							callback( { version: 1, uspString: '1YYN' }, true );
+							return;
+						}
+
+						// Check for cookie.
+						var consent = cookieLib.getItem( 'usprivacy' );
+
+						// Invalid cookie.
+						if ( null === consent ) {
+							callback( null, false );
+							return;
+						}
+
+						// Everything checks out. Fire the provided callback with the consent data.
+						callback( { version: 1, uspString: consent }, true );
+					};
+
+					// Initialization.
+					document.addEventListener( 'DOMContentLoaded', function() {
+
+						// Internal functions.
+						var setDefaultOptInCookie = function() {
+							var value = '1YNN';
+							var domain = '.wordpress.com' === location.hostname.slice( -14 ) ? '.rootDomain' : location.hostname;
+							cookieLib.setItem( 'usprivacy', value, 365 * 24 * 60 * 60, '/', domain );
+						};
+
+						var setDefaultOptOutCookie = function() {
+							var value = '1YYN';
+							var domain = '.wordpress.com' === location.hostname.slice( -14 ) ? '.rootDomain' : location.hostname;
+							cookieLib.setItem( 'usprivacy', value, 24 * 60 * 60, '/', domain );
+						};
+
+						var setDefaultNotApplicableCookie = function() {
+							var value = '1---';
+							var domain = '.wordpress.com' === location.hostname.slice( -14 ) ? '.rootDomain' : location.hostname;
+							cookieLib.setItem( 'usprivacy', value, 24 * 60 * 60, '/', domain );
+						};
+
+						var setCcpaAppliesCookie = function( applies ) {
+							var domain = '.wordpress.com' === location.hostname.slice( -14 ) ? '.rootDomain' : location.hostname;
+							cookieLib.setItem( 'ccpa_applies', applies, 24 * 60 * 60, '/', domain );
+						}
+
+						var maybeCallDoNotSellCallback = function() {
+							if ( 'function' === typeof window.doNotSellCallback ) {
+								return window.doNotSellCallback();
+							}
+
+							return false;
+						}
+
+						// Look for usprivacy cookie first.
+						var usprivacyCookie = cookieLib.getItem( 'usprivacy' );
+
+						// Found a usprivacy cookie.
+						if ( null !== usprivacyCookie ) {
+
+							// If the cookie indicates that CCPA does not apply, then bail.
+							if ( '1---' === usprivacyCookie ) {
+								return;
+							}
+
+							// CCPA applies, so call our callback to add Do Not Sell link to the page.
+							maybeCallDoNotSellCallback();
+
+							// We're all done, no more processing needed.
+							return;
+						}
+
+						// We don't have a usprivacy cookie, so check to see if we have a CCPA applies cookie.
+						var ccpaCookie = cookieLib.getItem( 'ccpa_applies' );
+
+						// No CCPA applies cookie found, so we'll need to geolocate if this visitor is from California.
+						// This needs to happen client side because we do not have region geo data in our $SERVER headers,
+						// only country data -- therefore we can't vary cache on the region.
+						if ( null === ccpaCookie ) {
+
+							var request = new XMLHttpRequest();
+							request.open( 'GET', 'https://public-api.wordpress.com/geo/', true );
+
+							request.onreadystatechange = function () {
+								if ( 4 === this.readyState ) {
+									if ( 200 === this.status ) {
+
+										// Got a geo response. Parse out the region data.
+										var data = JSON.parse( this.response );
+										var region      = data.region ? data.region.toLowerCase() : '';
+										var ccpa_applies = ['california', 'colorado', 'connecticut', 'utah', 'virginia'].indexOf( region ) > -1;
+										// Set CCPA applies cookie. This keeps us from having to make a geo request too frequently.
+										setCcpaAppliesCookie( ccpa_applies );
+
+										// Check if CCPA applies to set the proper usprivacy cookie.
+										if ( ccpa_applies ) {
+											if ( maybeCallDoNotSellCallback() ) {
+												// Do Not Sell link added, so set default opt-in.
+												setDefaultOptInCookie();
+											} else {
+												// Failed showing Do Not Sell link as required, so default to opt-OUT just to be safe.
+												setDefaultOptOutCookie();
+											}
+										} else {
+											// CCPA does not apply.
+											setDefaultNotApplicableCookie();
+										}
+									} else {
+										// Could not geo, so let's assume for now that CCPA applies to be safe.
+										setCcpaAppliesCookie( true );
+										if ( maybeCallDoNotSellCallback() ) {
+											// Do Not Sell link added, so set default opt-in.
+											setDefaultOptInCookie();
+										} else {
+											// Failed showing Do Not Sell link as required, so default to opt-OUT just to be safe.
+											setDefaultOptOutCookie();
+										}
+									}
+								}
+							};
+
+							// Send the geo request.
+							request.send();
+						} else {
+							// We found a CCPA applies cookie.
+							if ( ccpaCookie === 'true' ) {
+								if ( maybeCallDoNotSellCallback() ) {
+									// Do Not Sell link added, so set default opt-in.
+									setDefaultOptInCookie();
+								} else {
+									// Failed showing Do Not Sell link as required, so default to opt-OUT just to be safe.
+									setDefaultOptOutCookie();
+								}
+							} else {
+								// CCPA does not apply.
+								setDefaultNotApplicableCookie();
+							}
+						}
+					} );
+				};
+
+				// Kickoff initialization.
+				if ( window.defQueue && defQueue.isLOHP && defQueue.isLOHP === 2020 ) {
+					defQueue.items.push( setupPrivacy );
+				} else {
+					setupPrivacy();
+				}
+
+			} )();
+		</script>
+
+		<!-- CCPA [end] -->
+			<div id="actionbar" class="actnbr-pub-independent-publisher-2 actnbr-has-follow">
+		<ul>
+								<li class="actnbr-btn actnbr-hidden">
+								<a class="actnbr-action actnbr-actn-follow " href="">
+			<svg class="gridicon gridicons-reader-follow" height="24" width="24" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><g><path d="M23 16v2h-3v3h-2v-3h-3v-2h3v-3h2v3h3zM20 2v9h-4v3h-3v4H4c-1.1 0-2-.9-2-2V2h18zM8 13v-1H4v1h4zm3-3H4v1h7v-1zm0-2H4v1h7V8zm7-4H4v2h14V4z"></path></g></svg><span>Follow</span>
+		</a>
+		<a class="actnbr-action actnbr-actn-following  no-display" href="">
+			<svg class="gridicon gridicons-reader-following" height="24" width="24" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><g><path d="M23 13.482L15.508 21 12 17.4l1.412-1.388 2.106 2.188 6.094-6.094L23 13.482zm-7.455 1.862L20 10.89V2H2v14c0 1.1.9 2 2 2h4.538l4.913-4.832 2.095 2.176zM8 13H4v-1h4v1zm3-2H4v-1h7v1zm0-2H4V8h7v1zm7-3H4V4h14v2z"></path></g></svg><span>Following</span>
+		</a>
+							<div class="actnbr-popover tip tip-top-left actnbr-notice" id="follow-bubble">
+							<div class="tip-arrow"></div>
+							<div class="tip-inner actnbr-follow-bubble">
+															<ul>
+											<li class="actnbr-sitename actnbr-hidden">
+			<a href="https://justindomke.wordpress.com/">
+				<img alt="" src="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/wpcom-gray-white.png" class="avatar avatar-50" width="50" height="50">				Justin Domke			</a>
+		</li>
+										<form method="post" action="https://subscribe.wordpress.com" accept-charset="utf-8" style="display: none;">
+																						<div class="actnbr-follow-count">Join 180 other followers</div>
+																					<div>
+										<input type="email" name="email" placeholder="Enter your email address" class="actnbr-email-field" aria-label="Enter your email address">
+										</div>
+										<input type="hidden" name="action" value="subscribe">
+										<input type="hidden" name="blog_id" value="4009146">
+										<input type="hidden" name="source" value="https://justindomke.wordpress.com/2009/03/24/a-simple-explanation-of-reverse-mode-automatic-differentiation/">
+										<input type="hidden" name="sub-type" value="actionbar-follow">
+										<input type="hidden" id="_wpnonce" name="_wpnonce" value="705864dbe9">										<div class="actnbr-button-wrap">
+											<button type="submit" value="Sign me up">
+												Sign me up											</button>
+										</div>
+									</form>
+									<li class="actnbr-login-nudge actnbr-hidden">
+										<div>
+											Already have a WordPress.com account? <a href="https://wordpress.com/log-in?redirect_to=https%3A%2F%2Fjustindomke.wordpress.com%2F2009%2F03%2F24%2Fa-simple-explanation-of-reverse-mode-automatic-differentiation%2F&amp;signup_flow=account">Log in now.</a>										</div>
+									</li>
+								</ul>
+															</div>
+						</div>
+					</li>
+							<li class="actnbr-ellipsis actnbr-hidden">
+				<svg class="gridicon gridicons-ellipsis" height="24" width="24" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><g><path d="M7 12c0 1.104-.896 2-2 2s-2-.896-2-2 .896-2 2-2 2 .896 2 2zm12-2c-1.104 0-2 .896-2 2s.896 2 2 2 2-.896 2-2-.896-2-2-2zm-7 0c-1.104 0-2 .896-2 2s.896 2 2 2 2-.896 2-2-.896-2-2-2z"></path></g></svg>				<div class="actnbr-popover tip tip-top-left actnbr-more">
+					<div class="tip-arrow"></div>
+					<div class="tip-inner">
+						<ul>
+									<li class="actnbr-sitename actnbr-hidden">
+			<a href="https://justindomke.wordpress.com/">
+				<img alt="" src="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/wpcom-gray-white.png" class="avatar avatar-50" width="50" height="50">				Justin Domke			</a>
+		</li>
+								<li class="actnbr-folded-customize actnbr-hidden">
+								<a href="https://justindomke.wordpress.com/wp-admin/customize.php?url=https%3A%2F%2Fjustindomke.wordpress.com%2F2009%2F03%2F24%2Fa-simple-explanation-of-reverse-mode-automatic-differentiation%2F">
+									<svg class="gridicon gridicons-customize" height="20" width="20" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><g><path d="M2 6c0-1.505.78-3.08 2-4 0 .845.69 2 2 2 1.657 0 3 1.343 3 3 0 .386-.08.752-.212 1.09.74.594 1.476 1.19 2.19 1.81L8.9 11.98c-.62-.716-1.214-1.454-1.807-2.192C6.753 9.92 6.387 10 6 10c-2.21 0-4-1.79-4-4zm12.152 6.848l1.34-1.34c.607.304 1.283.492 2.008.492 2.485 0 4.5-2.015 4.5-4.5 0-.725-.188-1.4-.493-2.007L18 9l-2-2 3.507-3.507C18.9 3.188 18.225 3 17.5 3 15.015 3 13 5.015 13 7.5c0 .725.188 1.4.493 2.007L3 20l2 2 6.848-6.848c1.885 1.928 3.874 3.753 5.977 5.45l1.425 1.148 1.5-1.5-1.15-1.425c-1.695-2.103-3.52-4.092-5.448-5.977z"></path></g></svg>									<span>Customize</span>
+								</a>
+							</li>
+																<li class="actnbr-folded-follow actnbr-hidden">
+												<a class="actnbr-action actnbr-actn-follow " href="">
+			<svg class="gridicon gridicons-reader-follow" height="24" width="24" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><g><path d="M23 16v2h-3v3h-2v-3h-3v-2h3v-3h2v3h3zM20 2v9h-4v3h-3v4H4c-1.1 0-2-.9-2-2V2h18zM8 13v-1H4v1h4zm3-3H4v1h7v-1zm0-2H4v1h7V8zm7-4H4v2h14V4z"></path></g></svg><span>Follow</span>
+		</a>
+		<a class="actnbr-action actnbr-actn-following  no-display" href="">
+			<svg class="gridicon gridicons-reader-following" height="24" width="24" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><g><path d="M23 13.482L15.508 21 12 17.4l1.412-1.388 2.106 2.188 6.094-6.094L23 13.482zm-7.455 1.862L20 10.89V2H2v14c0 1.1.9 2 2 2h4.538l4.913-4.832 2.095 2.176zM8 13H4v-1h4v1zm3-2H4v-1h7v1zm0-2H4V8h7v1zm7-3H4V4h14v2z"></path></g></svg><span>Following</span>
+		</a>
+										</li>
+																	<li class="actnbr-signup actnbr-hidden"><a href="https://wordpress.com/start/">Sign up</a></li>
+									<li class="actnbr-login actnbr-hidden"><a href="https://wordpress.com/log-in?redirect_to=https%3A%2F%2Fjustindomke.wordpress.com%2F2009%2F03%2F24%2Fa-simple-explanation-of-reverse-mode-automatic-differentiation%2F&amp;signup_flow=account">Log in</a></li>
+																	<li class="actnbr-shortlink actnbr-hidden"><a href="https://wp.me/pgOXE-8Q">Copy shortlink</a></li>
+																	<li class="flb-report actnbr-hidden"><a href="http://en.wordpress.com/abuse/">Report this content</a></li>
+																	<li class="actnbr-reader actnbr-hidden">
+										<a href="https://wordpress.com/read/blogs/4009146/posts/548">
+											View post in Reader										</a>
+									</li>
+																	<li class="actnbr-subs actnbr-hidden">
+										<a href="https://subscribe.wordpress.com/">Manage subscriptions</a>
+									</li>
+																		<li class="actnbr-fold actnbr-hidden"><a href="">Collapse this bar</a></li>
+															</ul>
+					</div>
+				</div>
+			</li>
+		</ul>
+	</div>
+	
+<script>
+window.addEventListener( "load", function( event ) {
+	var link = document.createElement( "link" );
+	link.href = "https://s0.wp.com/wp-content/mu-plugins/actionbar/actionbar.css?v=20210915";
+	link.type = "text/css";
+	link.rel = "stylesheet";
+	document.head.appendChild( link );
+
+	var script = document.createElement( "script" );
+	script.src = "https://s0.wp.com/wp-content/mu-plugins/actionbar/actionbar.js?v=20220329";
+	script.defer = true;
+	document.body.appendChild( script );
+} );
+</script>
+
+	<script crossorigin="anonymous" type="text/javascript" src="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/Untitled_003"></script>
+<script type="text/javascript">
+// <![CDATA[
+(function() {
+try{
+  if ( window.external &&'msIsSiteMode' in window.external) {
+    if (window.external.msIsSiteMode()) {
+      var jl = document.createElement('script');
+      jl.type='text/javascript';
+      jl.async=true;
+      jl.src='/wp-content/plugins/ie-sitemode/custom-jumplist.php';
+      var s = document.getElementsByTagName('script')[0];
+      s.parentNode.insertBefore(jl, s);
+    }
+  }
+}catch(e){}
+})();
+// ]]>
+</script><script src="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/w.js" defer="defer"></script> <script type="text/javascript">
+_tkq = window._tkq || [];
+_stq = window._stq || [];
+_tkq.push(['storeContext', {'blog_id':'4009146','blog_tz':'0','user_lang':'en','blog_lang':'en','user_id':'0'}]);
+_stq.push(['view', {'blog':'4009146','v':'wpcom','tz':'0','user_id':'0','post':'548','subd':'justindomke'}]);
+_stq.push(['extra', {'crypt':'UE5XaGUuOTlwaD85flAmcm1mcmZsaDhkV11YdWFnNncxc1tjZG9XVXhRUmpicH5telcxaTdGUldPLzh+RElQaVZdJk5kXW0yS1V+ZVR4ZWYmYXVQSkVPUWx5OHlVdHdKNjlGWHB2aEpCMUEyfFRyYn5PN1FQRnNOJVhjZEhQeWRVJU0rbVdVRTJdLXc0RklHUmxHbWhHakVCRTk9XUROY1tJeFNlXzZKSVVCRCxxNmpdYlpiWW4/Q1R0U1tzRGFvTz95bVR4cmFkM0ZVeEhZQm81VTEwV3ZDVzJJfGlvLkVoc0dVdHxvRStRQ3Z0bSxJeWFGWjhHbWglK19tVFN1LndLfHYmQlVdYVJhfE9kMXA2UWxUMEZrX0RSMk9SP0ZSYVdoUlRqXSUyX1Fr'}]);
+_stq.push([ 'clickTrackerInit', '4009146', '548' ]);
+	</script>
+<noscript><img src="https://pixel.wp.com/b.gif?v=noscript" style="height:1px;width:1px;overflow:hidden;position:absolute;bottom:1px;" alt="" /></noscript>
+<script defer="defer" id="bilmur" data-customproperties="{&quot;logged_in&quot;:&quot;0&quot;,&quot;wptheme&quot;:&quot;pub\/independent-publisher-2&quot;}" data-provider="wordpress.com" data-service="simple" src="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/bilmur.min.js"></script><script>
+if ( 'object' === typeof wpcom_mobile_user_agent_info ) {
+
+	wpcom_mobile_user_agent_info.init();
+	var mobileStatsQueryString = "";
+	
+	if( false !== wpcom_mobile_user_agent_info.matchedPlatformName )
+		mobileStatsQueryString += "&x_" + 'mobile_platforms' + '=' + wpcom_mobile_user_agent_info.matchedPlatformName;
+	
+	if( false !== wpcom_mobile_user_agent_info.matchedUserAgentName )
+		mobileStatsQueryString += "&x_" + 'mobile_devices' + '=' + wpcom_mobile_user_agent_info.matchedUserAgentName;
+	
+	if( wpcom_mobile_user_agent_info.isIPad() )
+		mobileStatsQueryString += "&x_" + 'ipad_views' + '=' + 'views';
+
+	if( "" != mobileStatsQueryString ) {
+		new Image().src = document.location.protocol + '//pixel.wp.com/g.gif?v=wpcom-no-pv' + mobileStatsQueryString + '&baba=' + Math.random();
+	}
+	
+}
+</script>
+
+
+<style>img#wpstats {
+			position: absolute !important;
+			clip: rect(0, 0, 0, 0);
+			padding: 0 !important;
+			border: 0 !important;
+			height: 0 !important;
+			width: 0 !important;
+			overflow: hidden;
+		}</style><img src="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/g.gif" alt="" id="wpstats"><iframe style="display: none;" name="__tcfapiLocator"></iframe><div id="cmp-app-container"><div style="position: fixed; padding: 0px; bottom: 0px; left: 0px; right: 0px; z-index: 2147483646;"><iframe style="width: 100%; height: 222px; border: medium none; margin: 0px; display: flex;"></iframe></div></div><div class="bottom-sticky__ad-container bottom-sticky__ad-container_hidden" id="bottom-sticky__ad-container" style="">
+            <div class="bottom-sticky__ad-close-btn"></div>
+            <div id="bottom-sticky-ad" style="margin:0 auto;width:728px;"></div>
+        </div><style>.bottom-sticky__ad-container {
+    background: #f1f1f1;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    transform: translate(0,0);
+    transition: transform .2s ease-in-out;
+    user-select: none;
+    padding-top: 10px;
+    z-index: 49999;         /* AUTOMATTIC-2205 - because cookie consent banner has 50000 z-index */
+}
+.bottom-sticky__ad-container_hidden {
+    visibility: hidden;
+    transform: translate(0,1000px);
+}
+.bottom-sticky__ad-close-btn {
+    width: 20px;
+    height: 20px;
+    position: absolute;
+    box-sizing: content-box;
+    border: 2px solid #9d9d9d;
+    right: 2px;
+    top: -14px;
+    border-radius: 50%;
+    background-color: #fff;
+    cursor: pointer;
+    overflow: hidden;
+    background-size: 12px;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-image: url("data:image/svg+xml,%3Csvg width='24' height='24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath stroke-width='4' stroke='%239d9d9d' d='M0 0l24 24M0 24L24 0'/%3E%3C/svg%3E");
+}
+.bottom-sticky__ad-container .adtags-button {
+    color: #000;
+}</style><style>.ata-controls__complain-btn:hover,
+.ata-controls__privacy-btn:hover {
+    color: #666666 !important;
+}
+.ata-controls__complain-btn:active,
+.ata-controls__privacy-btn:active {
+    color: #5ac8fa !important;
+}
+.ata-controls__complain-btn_clicked,
+.ata-controls__complain-btn_clicked:hover,
+.ata-controls__complain-btn_clicked:active {
+    color: #000 !important;
+    cursor: default !important;
+}
+.ata-frame-wrapper {
+    overflow: hidden;
+    position: relative;
+}
+</style><script>window._stq = window._stq || [];window._stq.push( [ 'extra', { x_wordads_outbrain: 'widget_render_ar_1', }, ] );</script><script src="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/outbrain.js"></script><script src="A%20simple%20explanation%20of%20reverse-mode%20automatic%20differentiation%20%E2%80%93%20Justin%20Domke_files/actionbar.js" defer="defer"></script></body><grammarly-desktop-integration data-grammarly-shadow-root="true"></grammarly-desktop-integration></html>

@@ -1,0 +1,26 @@
+{
+    "id": "5F48DA5A",
+    "path": "~/Documents/GitHub/ad/ast2ast/inst/include/etr_bits/vec.hpp",
+    "project_path": "ast2ast/inst/include/etr_bits/vec.hpp",
+    "type": "hpp",
+    "hash": "0",
+    "contents": "",
+    "dirty": false,
+    "created": 1682337933611.0,
+    "source_on_save": false,
+    "relative_order": 5,
+    "properties": {
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "358,4",
+        "scrollLine": "341"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1682337955,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1682337955588,
+    "read_only": false,
+    "read_only_alternatives": []
+}
